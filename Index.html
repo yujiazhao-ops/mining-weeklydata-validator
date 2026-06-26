@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NS周报汇总面板</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f7f7f5;--bg3:#f0efe9;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#9c9a92;
+  --border:#e2e0d8;--border2:#d0cec6;
+  --green-bg:#eaf3de;--green:#3b6d11;
+  --red-bg:#fcebeb;--red:#a32d2d;
+  --amber-bg:#faeeda;--amber:#854f0b;
+  --blue-bg:#e6f1fb;--blue:#185fa5;
+  --r:8px;--rl:12px;
+}
+body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);font-size:13px;line-height:1.5;min-height:100vh}
+.app{max-width:1300px;margin:0 auto;padding:20px 14px 48px}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.nav-left{display:flex;align-items:center;gap:8px}
+.nav-title{font-size:15px;font-weight:500}
+.nav-sub{font-size:11px;color:var(--text3);background:var(--bg2);padding:2px 7px;border-radius:4px;border:.5px solid var(--border)}
+.nav-tabs{display:flex;gap:3px;background:var(--bg2);padding:3px;border-radius:8px;border:.5px solid var(--border)}
+.nav-tab{padding:5px 13px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--text2);border:none;background:transparent}
+.nav-tab.active{background:var(--bg);color:var(--text);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card{background:var(--bg);border-radius:var(--rl);border:.5px solid var(--border);padding:18px;margin-bottom:12px}
+.card-title{font-size:11px;font-weight:600;margin-bottom:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--rl);padding:22px 20px;text-align:center;cursor:pointer;position:relative;transition:border-color .2s,background .2s}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue);background:var(--blue-bg)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-title{font-size:14px;font-weight:500;margin-bottom:3px}
+.upload-sub{font-size:11px;color:var(--text3)}
+.file-ok{display:flex;align-items:center;gap:8px;background:var(--green-bg);border-radius:var(--r);padding:8px 12px;margin-top:10px}
+.file-name{font-size:12px;font-weight:500;color:var(--green);flex:1}
+label.lbl{display:block;font-size:11px;color:var(--text2);margin-bottom:3px;font-weight:500}
+select,input[type=date],input[type=number]{width:100%;padding:6px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-size:12px;appearance:none;-webkit-appearance:none}
+input[type=number]{appearance:auto;-webkit-appearance:auto}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239c9a92'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:26px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+@media(max-width:720px){.grid5{grid-template-columns:1fr 1fr}.grid3{grid-template-columns:1fr 1fr}}
+.hint{font-size:10px;color:var(--text3);margin-top:2px}
+.btn{padding:6px 14px;border-radius:var(--r);border:.5px solid var(--border2);background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;font-weight:500}
+.btn-primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+.btn-sm{padding:4px 9px;font-size:11px}
+.btn-row{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.status{font-size:11px;color:var(--text3)}
+.divider{height:.5px;background:var(--border);margin:14px 0}
+.date-group{background:var(--bg2);border-radius:var(--r);padding:12px;border:.5px solid var(--border)}
+.date-group-title{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.date-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot-blue{background:var(--blue)}
+.dot-gray{background:var(--text3)}
+
+/* 页面 */
+.page{display:none}.page.active{display:block}
+
+/* 报告 */
+.report-week-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.week-pill{font-size:12px;padding:3px 10px;border-radius:4px;font-weight:500}
+.pill-blue{background:var(--blue-bg);color:var(--blue)}
+.pill-gray{background:var(--bg2);color:var(--text2);border:.5px solid var(--border)}
+
+/* 总览对比表 */
+.overview-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px}
+.overview-table th{padding:8px 10px;font-size:11px;font-weight:500;text-align:right;border-bottom:.5px solid var(--border);background:var(--bg2);color:var(--text2);white-space:nowrap}
+.overview-table th:first-child{text-align:left}
+.overview-table td{padding:7px 10px;border-bottom:.5px solid var(--border);text-align:right;vertical-align:middle}
+.overview-table td:first-child{text-align:left;color:var(--text2);font-size:11px;white-space:nowrap}
+.overview-table tr:last-child td{border-bottom:none}
+.overview-table tr:hover td{background:var(--bg2)}
+.overview-table .section-row td{background:var(--bg2);font-weight:600;font-size:11px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase;padding:5px 10px}
+.val{font-weight:500}
+.delta-up{color:var(--green);font-size:10px}
+.delta-dn{color:var(--red);font-size:10px}
+.delta-na{color:var(--text3);font-size:10px}
+.rate-high{color:var(--green);font-weight:500}
+.rate-mid{color:var(--amber);font-weight:500}
+.rate-low{color:var(--red);font-weight:500}
+
+/* 分类块 */
+.cat-section{margin-bottom:14px}
+.cat-section-title{font-size:12px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.cat-table{width:100%;border-collapse:collapse;font-size:12px;min-width:600px}
+.cat-table th{padding:6px 9px;font-size:10px;font-weight:500;color:var(--text2);text-align:right;border-bottom:.5px solid var(--border);background:var(--bg2);white-space:nowrap}
+.cat-table th:first-child,.cat-table th:nth-child(2){text-align:left}
+.cat-table td{padding:6px 9px;border-bottom:.5px solid var(--border);text-align:right;font-size:12px}
+.cat-table td:first-child,.cat-table td:nth-child(2){text-align:left}
+.cat-table tr:last-child td{border-bottom:none}
+.cat-table tr:hover td{background:var(--bg2)}
+.cat-table .sub-row td:first-child{padding-left:20px;color:var(--text3)}
+.cat-table .total-row td{font-weight:600;background:var(--bg2)}
+.tbl-wrap{overflow-x:auto}
+
+/* 手风琴 */
+.acc-group{border:.5px solid var(--border);border-radius:var(--r);margin-bottom:6px;overflow:hidden}
+.acc-head{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;background:var(--bg);gap:8px}
+.acc-head:hover{background:var(--bg2)}
+.acc-left{display:flex;align-items:center;gap:8px}
+.acc-arr{font-size:10px;color:var(--text3);transition:transform .2s}
+.acc-arr.open{transform:rotate(180deg)}
+.acc-body{display:none;border-top:.5px solid var(--border)}
+.acc-body.open{display:block}
+
+/* 历史 */
+.hist-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);border:.5px solid var(--border);margin-bottom:7px}
+.hist-item:hover{background:var(--bg2)}
+.hist-date{font-size:12px;font-weight:500;min-width:160px}
+.hist-meta{font-size:11px;color:var(--text2);flex:1}
+.hist-acts{display:flex;gap:5px;flex-shrink:0}
+.empty{text-align:center;padding:36px;color:var(--text3);line-height:2}
+
+/* 规则 */
+.rule-item{display:flex;gap:8px;padding:9px 11px;background:var(--bg2);border-radius:6px;margin-bottom:5px}
+.rule-id{font-size:11px;font-weight:600;color:var(--text3);min-width:28px;padding-top:1px}
+.rule-name{font-size:12px;font-weight:500;margin-bottom:2px}
+.rule-desc{font-size:11px;color:var(--text2)}
+.sec-head{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="nav">
+  <div class="nav-left">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    <span class="nav-title">NS 周报汇总面板</span>
+    <span class="nav-sub">算力 · 收益 · 自动汇总</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('report',this)">周报</button>
+    <button class="nav-tab" onclick="showPage('history',this)">历史</button>
+    <button class="nav-tab" onclick="showPage('rules',this)">规则</button>
+  </div>
+</div>
+
+<div id="page-report" class="page active">
+  <div class="card">
+    <div class="card-title">上传文件 & 参数配置</div>
+    <div class="upload-zone" id="dropZone" ondragover="onDrag(event,true)" ondragleave="onDrag(event,false)" ondrop="onDrop(event)">
+      <input type="file" accept=".xlsx,.xls" onchange="onFileChange(event)">
+      <div style="font-size:22px;margin-bottom:5px">📊</div>
+      <div class="upload-title">点击选择或拖拽 Excel 文件</div>
+      <div class="upload-sub">需含「巡查表同步」和「收益表同步」两个 Sheet</div>
+    </div>
+    <div id="fileInfo" style="display:none" class="file-ok">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3b6d11" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span class="file-name" id="fileName"></span>
+      <span id="sheetInfo" style="font-size:11px;color:var(--text2)"></span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="grid2" style="margin-bottom:12px">
+      <div><label class="lbl">巡查表同步 Sheet</label><select id="selIns"></select></div>
+      <div><label class="lbl">收益表同步 Sheet</label><select id="selRev"></select></div>
+    </div>
+
+    <div class="grid2" style="gap:10px;margin-bottom:12px">
+      <div class="date-group">
+        <div class="date-group-title"><span class="date-dot dot-blue"></span>本周</div>
+        <div class="grid2">
+          <div><label class="lbl">开始日期（周一）</label><input type="date" id="curFrom"></div>
+          <div><label class="lbl">结束日期（周日）</label><input type="date" id="curTo"></div>
+        </div>
+      </div>
+      <div class="date-group">
+        <div class="date-group-title"><span class="date-dot dot-gray"></span>对比周（可选）</div>
+        <div class="grid2">
+          <div><label class="lbl">开始日期</label><input type="date" id="cmpFrom"><div class="hint">留空不显示对比</div></div>
+          <div><label class="lbl">结束日期</label><input type="date" id="cmpTo"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div>
+        <span style="font-size:12px;font-weight:500">超频附加算力（P）</span>
+        <span style="font-size:11px;color:var(--text3);margin-left:6px">按分类×本位填写 · 总揽自动加总 · 自动保存</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span id="oc_total_display" style="font-size:11px;color:var(--text2)">总揽: 0P</span>
+        <button class="btn btn-sm" onclick="resetOC()">重置为0</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:500px">
+        <thead>
+          <tr>
+            <th style="padding:6px 10px;text-align:left;background:var(--bg2);border:.5px solid var(--border);font-weight:500;color:var(--text2);width:100px">分类</th>
+            <th style="padding:6px 10px;text-align:center;background:var(--bg2);border:.5px solid var(--border);font-weight:500;color:var(--text2)">币本位（P）</th>
+            <th style="padding:6px 10px;text-align:center;background:var(--bg2);border:.5px solid var(--border);font-weight:500;color:var(--text2)">U本位（P）</th>
+            <th style="padding:6px 10px;text-align:center;background:var(--bg2);border:.5px solid var(--border);font-weight:500;color:var(--text3);font-size:11px">小计（自动）</th>
+          </tr>
+        </thead>
+        <tbody id="oc_tbody">
+          <tr><td style="padding:5px 10px;border:.5px solid var(--border);color:var(--text2)">SADG自营</td>
+            <td style="padding:4px 8px;border:.5px solid var(--border)"><input type="number" id="oc_sad_coin" value="53.9145" step="0.01" min="0" style="width:100%" oninput="saveOC();updateOCTotals()"></td>
+            <td style="padding:4px 8px;border:.5px solid var(--border)"><input type="number" id="oc_sad_u" value="0.62" step="0.01" min="0" style="width:100%" oninput="saveOC();updateOCTotals()"></td>
+            <td style="padding:5px 10px;border:.5px solid var(--border);text-align:center;color:var(--text2)" id="oc_sad_sub">54.53</td></tr>
+          <tr><td style="padding:5px 10px;border:.5px solid var(--border);color:var(--text2)">新合资</td>
+            <td style="padding:4px 8px;border:.5px solid var(--border)"><input type="number" id="oc_new_coin" value="57.96" step="0.01" min="0" style="width:100%" oninput="saveOC();updateOCTotals()"></td>
+            <td style="padding:4px 8px;border:.5px solid var(--border)"><input type="number" id="oc_new_u" value="0" step="0.01" min="0" style="width:100%" oninput="saveOC();updateOCTotals()"></td>
+            <td style="padding:5px 10px;border:.5px solid var(--border);text-align:center;color:var(--text2)" id="oc_new_sub">57.96</td></tr>
+          <tr><td style="padding:5px 10px;border:.5px solid var(--border);color:var(--text2)">老合资</td>
+            <td style="padding:4px 8px;border:.5px solid var(--border)"><input type="number" id="oc_old_coin" value="0" step="0.01" min="0" style="width:100%" oninput="saveOC();updateOCTotals()"></td>
+            <td style="padding:4px 8px;border:.5px solid var(--border)"><input type="number" id="oc_old_u" value="15.33" step="0.01" min="0" style="width:100%" oninput="saveOC();updateOCTotals()"></td>
+            <td style="padding:5px 10px;border:.5px solid var(--border);text-align:center;color:var(--text2)" id="oc_old_sub">15.33</td></tr>
+          <tr><td style="padding:5px 10px;border:.5px solid var(--border);color:var(--text2)">其他项</td>
+            <td style="padding:4px 8px;border:.5px solid var(--border)"><input type="number" id="oc_other_coin" value="0" step="0.01" min="0" style="width:100%" oninput="saveOC();updateOCTotals()"></td>
+            <td style="padding:4px 8px;border:.5px solid var(--border)"><input type="number" id="oc_other_u" value="19.3" step="0.01" min="0" style="width:100%" oninput="saveOC();updateOCTotals()"></td>
+            <td style="padding:5px 10px;border:.5px solid var(--border);text-align:center;color:var(--text2)" id="oc_other_sub">19.3</td></tr>
+          <tr><td style="padding:5px 10px;border:.5px solid var(--border);color:var(--text2)">我方代托</td>
+            <td style="padding:4px 8px;border:.5px solid var(--border)"><input type="number" id="oc_proxy_coin" value="0" step="0.01" min="0" style="width:100%" oninput="saveOC();updateOCTotals()"></td>
+            <td style="padding:4px 8px;border:.5px solid var(--border)"><input type="number" id="oc_proxy_u" value="0" step="0.01" min="0" style="width:100%" oninput="saveOC();updateOCTotals()"></td>
+            <td style="padding:5px 10px;border:.5px solid var(--border);text-align:center;color:var(--text2)" id="oc_proxy_sub">0</td></tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td style="padding:6px 10px;border:.5px solid var(--border);font-weight:600;background:var(--bg2)">总揽</td>
+            <td style="padding:6px 10px;border:.5px solid var(--border);text-align:center;font-weight:600;background:var(--bg2)" id="oc_total_coin">111.87</td>
+            <td style="padding:6px 10px;border:.5px solid var(--border);text-align:center;font-weight:600;background:var(--bg2)" id="oc_total_u">35.25</td>
+            <td style="padding:6px 10px;border:.5px solid var(--border);text-align:center;font-weight:600;background:var(--bg2)" id="oc_total_all">147.12</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="hint" style="margin-top:5px">💡 总揽超频 = 各分类加总；总览达成率分母 = NS持有算力 + 对应超频值</div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnRun" onclick="runReport()" disabled>生成周报</button>
+      <button class="btn" id="btnExport" onclick="exportExcel()" style="display:none">⬇ 导出 Excel</button>
+      <span class="status" id="statusMsg"></span>
+    </div>
+  </div>
+
+  <div class="card" id="priceCalcCard" style="display:none">
+  <div class="card-title">实时币价利润测算 <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">· 基于本周期总览数据</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end">
+    <div>
+      <label class="lbl">实时币价（USD/BTC）</label>
+      <div style="display:flex;gap:6px">
+        <input type="number" id="livePrice" placeholder="如 95000" step="100" min="0"
+          style="font-size:14px;font-weight:500;flex:1" oninput="calcLiveProfit()">
+        <button class="btn" onclick="fetchBTCPrice()" id="btnFetchPrice" style="white-space:nowrap;flex-shrink:0">⟳ 获取实时价</button>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px" id="priceSource"></div>
+    </div>
+    <div style="background:var(--bg2);border-radius:var(--r);padding:12px 14px">
+      <div style="font-size:10px;color:var(--text2);margin-bottom:4px">本周产出BTC（总揽）</div>
+      <div style="font-size:16px;font-weight:500" id="lp_btc">—</div>
+    </div>
+    <div style="background:var(--bg2);border-radius:var(--r);padding:12px 14px">
+      <div style="font-size:10px;color:var(--text2);margin-bottom:4px">本周托管运维费（总揽）</div>
+      <div style="font-size:16px;font-weight:500" id="lp_cost">—</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
+    <div style="background:var(--blue-bg);border-radius:var(--r);padding:12px 14px;border:.5px solid #c5d9f0">
+      <div style="font-size:10px;color:var(--blue);margin-bottom:4px">测算USD收入</div>
+      <div style="font-size:20px;font-weight:500;color:var(--blue)" id="lp_usd">—</div>
+    </div>
+    <div style="background:var(--green-bg);border-radius:var(--r);padding:12px 14px;border:.5px solid #c5dfa8">
+      <div style="font-size:10px;color:var(--green);margin-bottom:4px">测算毛利</div>
+      <div style="font-size:20px;font-weight:500" id="lp_profit">—</div>
+    </div>
+    <div style="background:var(--amber-bg);border-radius:var(--r);padding:12px 14px;border:.5px solid #e8d0a0">
+      <div style="font-size:10px;color:var(--amber);margin-bottom:4px">测算电费占比</div>
+      <div style="font-size:20px;font-weight:500;color:var(--amber)" id="lp_elec">—</div>
+    </div>
+  </div>
+</div>
+<div id="reportArea"></div>
+</div>
+
+<div id="page-history" class="page">
+  <div class="card">
+    <div class="card-title">历史周报记录 <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">· 本地浏览器 · 最多20条</span></div>
+    <div id="histList"></div>
+  </div>
+</div>
+
+<div id="page-rules" class="page">
+  <div class="card">
+    <div class="sec-head" style="margin-bottom:10px">算力指标（巡查表同步）</div>
+    <div class="rule-item"><span class="rule-id">M1</span><div><div class="rule-name">管理机器数（台）</div><div class="rule-desc">SUMIFS(H列持有机器数, 日期=周末, BN列=分类)，总揽不过滤采购分类，U本位/币本位列额外过滤BJ列</div></div></div>
+    <div class="rule-item"><span class="rule-id">M2</span><div><div class="rule-name">管理算力（P）</div><div class="rule-desc">SUMIFS(K列理论总算力, 日期=周末, BN列=分类)，同上</div></div></div>
+    <div class="rule-item"><span class="rule-id">M3</span><div><div class="rule-name">NS持有算力（P）</div><div class="rule-desc">SUMIFS(BA列ns算力, 日期=周末, BN列=分类)，取周末最后一天快照</div></div></div>
+    <div class="rule-item"><span class="rule-id">M4</span><div><div class="rule-name">NS有效算力（P）</div><div class="rule-desc">SUMIFS(BM列ns实际算力, 日期∈周内, BN=分类, BJ∈[U本位/币本位], BK==正常) ÷ 7，取周内 7 天平均</div></div></div>
+    <div class="rule-item"><span class="rule-id">M5</span><div><div class="rule-name">周算力达成率</div><div class="rule-desc">NS有效算力 ÷ (NS持有算力 + 超频附加值)，超频附加值按分类单独维护</div></div></div>
+    <div class="rule-item"><span class="rule-id">M6</span><div><div class="rule-name">剔除异常场地达成率</div><div class="rule-desc">NS有效算力 ÷ (SUMIFS(BL列ns持有去故障, 日期=周末, BK=正常) + 超频附加值)</div></div></div>
+  </div>
+  <div class="card">
+    <div class="sec-head" style="margin-bottom:10px">收益指标（收益表同步）</div>
+    <div class="rule-item"><span class="rule-id">R1</span><div><div class="rule-name">产出BTC（枚）</div><div class="rule-desc">SUMIFS(AC列预估BTC收入, 日期∈周内, 矿工号分类=BN分类, 采购分类=本位)，按矿工号从巡查表映射分类</div></div></div>
+    <div class="rule-item"><span class="rule-id">R2</span><div><div class="rule-name">USD收入（$）</div><div class="rule-desc">SUMIFS(AF列btc价值USD, 日期∈周内, 分类, 本位)</div></div></div>
+    <div class="rule-item"><span class="rule-id">R3</span><div><div class="rule-name">托管运维费（$）</div><div class="rule-desc">USD收入 − 毛利（表格没有直接的成本列，成本已计入毛利计算）</div></div></div>
+    <div class="rule-item"><span class="rule-id">R4</span><div><div class="rule-name">毛利（$）</div><div class="rule-desc">SUMIFS(AH列理论毛利, 日期∈周内, 分类, 本位)</div></div></div>
+    <div class="rule-item"><span class="rule-id">R5</span><div><div class="rule-name">电费占比</div><div class="rule-desc">托管运维费 ÷ USD收入</div></div></div>
+  </div>
+  <div class="card">
+    <div class="sec-head" style="margin-bottom:8px">数据说明</div>
+    <div style="font-size:12px;color:var(--text2);line-height:2.1">
+      <b>分类（BN列）</b>：SAD / 新合资 / 老合资 / 其他项 / 我方代 / NS / 已经出<br>
+      <b>本位（BJ列）</b>：U本位 / 币本位 / 客户机器 / 电力矿场，后两者只计入总揽不拆分<br>
+      <b>超频附加算力</b>：人工调整值，加在NS持有算力上作为达成率分母，按分类单独维护，自动保存到本地<br>
+      <b>对比周</b>：从同一份文件中按对比日期范围重新计算，可选择任意两周对比<br>
+      <b>环比变化</b>：(本周 − 对比周) ÷ |对比周|，绿色为正向，红色为负向
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+const $=id=>document.getElementById(id);
+function n(v){
+  if(v==null||v==='') return null;
+  const s=String(v).trim();
+  if(['—','——','#DIV/0!','#NAME?','#REF!','#VALUE!','#N/A'].includes(s)) return null;
+  const f=parseFloat(s.replace(/,/g,'').replace(/\$/g,''));
+  return isNaN(f)?null:f;
+}
+
+function gRow(row,key){
+  if(row[key]!=null&&row[key]!=='') return row[key];
+  const k2=key.replace(/\n/g,' ').trim();
+  if(row[k2]!=null&&row[k2]!=='') return row[k2];
+  const k3=key.replace(/\n/g,'').trim();
+  if(row[k3]!=null&&row[k3]!=='') return row[k3];
+  return '';
+}
+function gIdx(row,idx){return row['__idx_'+idx]??'';}
+function fN(v,d=2){return v!=null?Number(v).toFixed(d):'—';}
+function fPct(v){return v!=null?`${(Number(v)*100).toFixed(2)}%`:'—';}
+function fK(v,d=1){return v!=null?`$${(v/1000).toFixed(d)}K`:'—';}
+function profitColor(v){return (v||0)>=0?'var(--green)':'var(--red)';}
+function rateClass(r){return r>=0.9?'rate-high':r>=0.7?'rate-mid':'rate-low';}
+function normDate(s){
+  if(s==null||s==='') return '';
+  if(typeof s==='number'||(/^\d+(\.\d+)?$/.test(String(s).trim())&&parseFloat(s)>40000&&parseFloat(s)<60000)){
+    const serial=parseFloat(s);
+    const d=new Date(Date.UTC(1899,11,30)+serial*86400000);
+    const y=d.getUTCFullYear(),m=String(d.getUTCMonth()+1).padStart(2,'0'),day=String(d.getUTCDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  const str=String(s).trim();
+  const m=str.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  const p=str.replace(/\//g,'-').replace(/\s.*/,'').trim().split('-');
+  if(p.length<3) return str.slice(0,10);
+  return `${p[0]}-${p[1].padStart(2,'0')}-${p[2].padStart(2,'0')}`;
+}
+function dAlt(cur,cmp){
+  if(cmp==null||cmp===0||cur==null) return '<span class="delta-na">—</span>';
+  const d=(cur-cmp)/Math.abs(cmp);
+  const sign=d>0?'+':'';
+  const cls=d>0?'delta-up':'delta-dn';
+  return `<span class="${cls}">${sign}${(d*100).toFixed(1)}%</span>`;
+}
+function deltaRate(cur,cmp){
+  if(cmp==null||cur==null) return '<span class="delta-na">—</span>';
+  const d=cur-cmp;
+  const sign=d>0?'+':'';
+  const cls=d>0?'delta-up':'delta-dn';
+  return `<span class="${cls}">${sign}${(d*100).toFixed(2)}pp</span>`;
+}
+
+const OC_KEY='ns_weekly_oc_v3';
+const OC_IDS=[
+  ['oc_sad_coin','oc_sad_u'],['oc_new_coin','oc_new_u'],
+  ['oc_old_coin','oc_old_u'],['oc_other_coin','oc_other_u'],
+  ['oc_proxy_coin','oc_proxy_u']
+];
+const OC_SUBS=['oc_sad_sub','oc_new_sub','oc_old_sub','oc_other_sub','oc_proxy_sub'];
+function loadOC(){try{return JSON.parse(localStorage.getItem(OC_KEY)||'{}');}catch{return {};}}
+function saveOC(){
+  const d={};
+  OC_IDS.forEach(([ci,ui])=>{d[ci]=n($(ci).value)||0;d[ui]=n($(ui).value)||0;});
+  localStorage.setItem(OC_KEY,JSON.stringify(d));
+}
+function updateOCTotals(){
+  let tot_coin=0,tot_u=0;
+  OC_IDS.forEach(([ci,ui],i)=>{
+    const cv=n($(ci).value)||0,uv=n($(ui).value)||0;
+    $(OC_SUBS[i]).textContent=(cv+uv).toFixed(4).replace(/\.?0+$/,'');
+    tot_coin+=cv;tot_u+=uv;
+  });
+  $('oc_total_coin').textContent=tot_coin.toFixed(4).replace(/\.?0+$/,'');
+  $('oc_total_u').textContent=tot_u.toFixed(4).replace(/\.?0+$/,'');
+  $('oc_total_all').textContent=(tot_coin+tot_u).toFixed(4).replace(/\.?0+$/,'');
+  if($('oc_total_display'))$('oc_total_display').textContent='总揽: '+(tot_coin+tot_u).toFixed(2)+'P';
+}
+function resetOC(){
+  OC_IDS.forEach(([ci,ui])=>{$(ci).value=0;$(ui).value=0;});
+  saveOC();updateOCTotals();
+}
+function initOC(){
+  const d=loadOC();
+  OC_IDS.forEach(([ci,ui])=>{
+    if(d[ci]!=null)$(ci).value=d[ci];
+    if(d[ui]!=null)$(ui).value=d[ui];
+  });
+  updateOCTotals();
+}
+function getOC(){
+  const sad_c=n($('oc_sad_coin').value)||0,sad_u=n($('oc_sad_u').value)||0;
+  const new_c=n($('oc_new_coin').value)||0,new_u=n($('oc_new_u').value)||0;
+  const old_c=n($('oc_old_coin').value)||0,old_u=n($('oc_old_u').value)||0;
+  const oth_c=n($('oc_other_coin').value)||0,oth_u=n($('oc_other_u').value)||0;
+  const pxy_c=n($('oc_proxy_coin').value)||0,pxy_u=n($('oc_proxy_u').value)||0;
+  return {
+    SAD:{coin:sad_c,u:sad_u,total:sad_c+sad_u},
+    '新合资':{coin:new_c,u:new_u,total:new_c+new_u},
+    '老合资':{coin:old_c,u:old_u,total:old_c+old_u},
+    '其他项':{coin:oth_c,u:oth_u,total:oth_c+oth_u},
+    '我方代':{coin:pxy_c,u:pxy_u,total:pxy_c+pxy_u},
+    '已经出':{coin:0,u:0,total:0},
+    _total:{coin:sad_c+new_c+old_c+oth_c+pxy_c,u:sad_u+new_u+old_u+oth_u+pxy_u,
+            total:sad_c+new_c+old_c+oth_c+pxy_c+sad_u+new_u+old_u+oth_u+pxy_u}
+  };
+}
+initOC();
+
+let wb=null;
+function onDrag(e,on){e.preventDefault();$('dropZone').classList.toggle('drag',on);}
+function onDrop(e){e.preventDefault();$('dropZone').classList.remove('drag');readFile(e.dataTransfer.files[0]);}
+function onFileChange(e){readFile(e.target.files[0]);}
+function readFile(file){
+  if(!file)return; setSt('读取中...');
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      wb=XLSX.read(e.target.result,{type:'array',cellDates:false,dateNF:'yyyy-mm-dd'});
+      $('fileName').textContent=file.name;
+      $('fileInfo').style.display='flex';
+      $('sheetInfo').textContent=`${wb.SheetNames.length} 个 Sheet`;
+      updateSels(wb.SheetNames);
+      $('btnRun').disabled=false;
+      setSt('读取完成，请设置日期范围后生成周报');
+    }catch(ex){setSt('读取失败：'+ex.message);}
+  };
+  r.readAsArrayBuffer(file);
+}
+function updateSels(names){
+  [$('selIns'),$('selRev')].forEach(s=>{
+    s.innerHTML='';
+    names.forEach(nm=>{const o=document.createElement('option');o.value=o.textContent=nm;s.appendChild(o);});
+  });
+  ['巡查表同步'].forEach(p=>{if(names.includes(p))$('selIns').value=p;});
+  ['收益表同步'].forEach(p=>{if(names.includes(p))$('selRev').value=p;});
+}
+function toRows(sheet){
+  const raw=XLSX.utils.sheet_to_json(sheet,{raw:true,defval:'',header:1,cellDates:true});
+  if(!raw||raw.length<2) return [];
+  const hdr=raw[0];
+  let dataStart=1;
+  while(dataStart<raw.length&&(!raw[dataStart][0]||raw[dataStart][0]==='')) dataStart++;
+  const nameToIdx={};
+  hdr.forEach((name,i)=>{
+    if(name==null||name==='') return;
+    const k=String(name).trim();
+    if(nameToIdx[k]==null) nameToIdx[k]=i;
+    const k2=k.replace(/\n/g,' ');
+    if(nameToIdx[k2]==null) nameToIdx[k2]=i;
+    const k3=k.replace(/\n/g,'').trim();
+    if(nameToIdx[k3]==null) nameToIdx[k3]=i;
+  });
+  const dateColIdx=nameToIdx['登记日期'];
+  const toDateStr=v=>{
+    if(v instanceof Date){
+      const y=v.getUTCFullYear(),m=String(v.getUTCMonth()+1).padStart(2,'0'),d=String(v.getUTCDate()).padStart(2,'0');
+      return `${y}-${m}-${d}`;
+    }
+    return v;
+  };
+  return raw.slice(dataStart).map(rowArr=>{
+    const obj={};
+    if(!rowArr) return obj;
+    rowArr.forEach((v,i)=>{ obj['__idx_'+i]=(i===dateColIdx)?toDateStr(v):(v??''); });
+    Object.entries(nameToIdx).forEach(([name,colIdx])=>{
+      const val=rowArr[colIdx];
+      obj[name]=(colIdx===dateColIdx)?toDateStr(val):(val??'');
+    });
+    return obj;
+  });
+}
+
+const CATS=['SAD','新合资','老合资','其他项','我方代','已经出'];
+const CAT_NAMES={'SAD':'SADG自营','新合资':'新合资（赵总）','老合资':'老合资','其他项':'其他项目','我方代':'我方代托','已经出':'已经出售/争议'};
+const BJ_VALID=['U本位','币本位'];
+
+function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
+  const result={};
+  CATS.forEach(cat=>{result[cat]={total:{},byBase:{'U本位':{},'币本位':{}}};});
+
+  CATS.forEach(cat=>{
+    const isProxy=cat==='我方代'; 
+    const ocVal=oc[cat]||0;
+
+    ['U本位','币本位'].forEach(base=>{
+      let sumH=0,sumK=0,sumBA=0,sumBL=0,sumBM=0,sumI=0,sumX=0;
+      insRows.forEach(row=>{
+        const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
+        if(!miner||['矿工号','汇总',''].includes(miner)) return;
+        const bn=String(gIdx(row,65)||gRow(row,'分类')||'').trim();
+        const bj=String(gIdx(row,61)||gRow(row,'采购\n资金分类')||'').trim();
+        const bk=String(gIdx(row,62)||gRow(row,'需剔除场地')||'').trim();
+        const date=normDate(String(gRow(row,'登记日期')||''));
+        if(bn!==cat||bj!==base) return;
+        if(date===to){
+          sumH+=n(gIdx(row,7) ||gRow(row,'持有机器数'))||0;
+          sumK+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
+          sumBA+=n(gIdx(row,52)||gRow(row,'ns算力'))||0;
+          if(bk==='正常') sumBL+=n(gIdx(row,63)||gRow(row,'ns持有算力（去故障）计算剔除0算力场地用'))||0;
+        }
+        if(date>=from&&date<=to){
+          if(bk==='正常'){
+            sumBM+=n(gIdx(row,64)||gRow(row,'ns实际算力'))||0;
+            sumI +=n(gIdx(row,8) ||gRow(row,'24h平均算力（P）'))||0;
+            sumX +=n(gIdx(row,23)||gRow(row,'架上理论算力(P)'))||0;
+          }
+        }
+      });
+      const nsEff=sumBM/7;
+      const rateEff=isProxy?sumI/1000/7:nsEff;
+      const rateDen=isProxy?sumX/1000/7:sumBA;
+      const rateExDen=isProxy?sumX/1000/7:sumBL;
+      const ocCat=oc[cat]||{coin:0,u:0,total:0};
+      const ocVal=base==='U本位'?ocCat.u:ocCat.coin;
+      result[cat].byBase[base]={
+        machines:sumH,manageP:sumK,nsHold:sumBA,nsHoldEx:sumBL,nsEff,
+        rate:rateDen>0?rateEff/(rateDen+ocVal):null,
+        rateEx:rateExDen>0?rateEff/(rateExDen+ocVal):null,
+      };
+    });
+
+    let sumH=0,sumK=0,sumBA=0,sumBL=0,sumBM=0,sumI=0,sumX=0;
+    insRows.forEach(row=>{
+      const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
+      if(!miner||['矿工号','汇总',''].includes(miner)) return;
+      const bn=String(gIdx(row,65)||gRow(row,'分类')||'').trim();
+      const bj=String(gIdx(row,61)||gRow(row,'采购\n资金分类')||'').trim();
+      const bk=String(gIdx(row,62)||gRow(row,'需剔除场地')||'').trim();
+      const date=normDate(String(gRow(row,'登记日期')||''));
+      if(bn!==cat) return;
+      if(date===to){
+        sumH+=n(gIdx(row,7) ||gRow(row,'持有机器数'))||0;
+        sumK+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
+        sumBA+=n(gIdx(row,52)||gRow(row,'ns算力'))||0;
+        if(bk==='正常') sumBL+=n(gIdx(row,63)||gRow(row,'ns持有算力（去故障）计算剔除0算力场地用'))||0;
+      }
+      if(date>=from&&date<=to&&bk==='正常'){
+        sumBM+=n(gIdx(row,64)||gRow(row,'ns实际算力'))||0;
+        sumI +=n(gIdx(row,8) ||gRow(row,'24h平均算力（P）'))||0;
+        sumX +=n(gIdx(row,23)||gRow(row,'架上理论算力(P)'))||0;
+      }
+    });
+    const nsEff=sumBM/7;
+    const rateEff=isProxy?sumI/1000/7:nsEff;
+    const rateDen=isProxy?sumX/1000/7:sumBA;
+    const rateExDen=isProxy?sumX/1000/7:sumBL;
+    const ocTotCat=(oc[cat]||{}).total||0;
+    result[cat].total={
+      machines:sumH,manageP:sumK,nsHold:sumBA,nsHoldEx:sumBL,nsEff,
+      rate:rateDen>0?rateEff/(rateDen+ocTotCat):null,
+      rateEx:rateExDen>0?rateEff/(rateExDen+ocTotCat):null,
+    };
+  });
+
+  CATS.forEach(cat=>{
+    ['U本位','币本位','total'].forEach(base=>{
+      let sumBtc=0,sumUsd=0,sumProfit=0;
+      revRows.forEach(row=>{
+        const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
+        if(!miner||['矿工号','汇总',''].includes(miner)) return;
+        const date=normDate(String(gRow(row,'登记日期')||''));
+        if(date<from||date>to) return;
+        const catInfo=minerCatMap[miner]||{};
+        if(catInfo.bn!==cat) return;
+        if(!BJ_VALID.includes(catInfo.bj||'')) return;
+        if(base!=='total'&&catInfo.bj!==base) return;
+        sumBtc+=n(gRow(row,'预估ns最近24小时btc收入'))||0;
+        sumUsd+=n(gRow(row,'最近24小时btc价值（美元）'))||0;
+        sumProfit+=n(gRow(row,'最近24小时理论毛利（美元）'))||0;
+      });
+      const cost=sumUsd-sumProfit;
+      const target=base==='total'?result[cat].total:result[cat].byBase[base];
+      if(target){target.btc=sumBtc;target.usd=sumUsd;target.profit=sumProfit;target.cost=cost;target.elecPct=sumUsd>0?cost/sumUsd:null;}
+    });
+  });
+
+  let totH=0,totK=0,totBA=0,totBL=0,totBM=0,totI=0,totX=0,totBtc=0,totUsd=0,totProfit=0;
+  const totByBase={'U本位':{H:0,K:0,BA:0,BL:0,BM:0,I:0,X:0,btc:0,usd:0,profit:0},
+                   '币本位':{H:0,K:0,BA:0,BL:0,BM:0,I:0,X:0,btc:0,usd:0,profit:0}};
+  CATS.forEach(cat=>{
+    const t=result[cat].total;
+    totH+=t.machines||0;totK+=t.manageP||0;totBA+=t.nsHold||0;
+    totBL+=t.nsHoldEx||0;totBM+=t.nsEff||0;
+    totBtc+=t.btc||0;totUsd+=t.usd||0;totProfit+=t.profit||0;
+    ['U本位','币本位'].forEach(base=>{
+      const b=result[cat].byBase[base];
+      totByBase[base].H+=b.machines||0;totByBase[base].K+=b.manageP||0;
+      totByBase[base].BA+=b.nsHold||0;totByBase[base].BL+=b.nsHoldEx||0;
+      totByBase[base].BM+=b.nsEff||0;
+      totByBase[base].btc+=b.btc||0;totByBase[base].usd+=b.usd||0;totByBase[base].profit+=b.profit||0;
+    });
+  });
+
+  const ocTotObj=oc._total||{coin:0,u:0,total:0};
+  const ocTot=ocTotObj.total||0;
+  const ocTotCoin=ocTotObj.coin||0;
+  const ocTotU=ocTotObj.u||0;
+  const mkTot=(b,eff,ocV)=>({
+    machines:b.H,manageP:b.K,nsHold:b.BA,nsHoldEx:b.BL,nsEff:eff||b.BM,
+    rate:b.BA+(ocV||0)>0?(eff||b.BM)/(b.BA+(ocV||0)):null,
+    rateEx:b.BL+(ocV||0)>0?(eff||b.BM)/(b.BL+(ocV||0)):null,
+    btc:b.btc,usd:b.usd,profit:b.profit,cost:b.usd-b.profit,
+    elecPct:b.usd>0?(b.usd-b.profit)/b.usd:null
+  });
+  const totEff=totBM; 
+  result._total={
+    total:{machines:totH,manageP:totK,nsHold:totBA,nsHoldEx:totBL,nsEff:totEff,
+      rate:totBA+ocTot>0?totEff/(totBA+ocTot):null,
+      rateEx:totBL+ocTot>0?totEff/(totBL+ocTot):null,
+      btc:totBtc,usd:totUsd,profit:totProfit,cost:totUsd-totProfit,
+      elecPct:totUsd>0?(totUsd-totProfit)/totUsd:null},
+    byBase:{'U本位':mkTot(totByBase['U本位'],null,ocTotU),'币本位':mkTot(totByBase['币本位'],null,ocTotCoin)}
+  };
+  return result;
+}
+
+function runReport(){
+  if(!wb){setSt('请先上传文件');return;}
+  const s1=$('selIns').value,s2=$('selRev').value;
+  const curFrom=$('curFrom').value,curTo=$('curTo').value;
+  const cmpFrom=$('cmpFrom').value,cmpTo=$('cmpTo').value;
+  if(!curFrom||!curTo){setSt('请填写本周日期范围');return;}
+  setSt('计算中...');
+  try{
+    const insRows=toRows(wb.Sheets[s1]);
+    const revRows=toRows(wb.Sheets[s2]);
+    const oc=getOC();
+
+    const minerCatMap={};
+    insRows.forEach(row=>{
+      const miner=String(row['矿工号']||'').split('\n')[0].trim();
+      const bn=String(gIdx(row,65)||gRow(row,'分类')||'').trim();
+      const bj=String(gIdx(row,61)||gRow(row,'采购\n资金分类')||'').trim();
+      if(miner&&bn&&!minerCatMap[miner]) minerCatMap[miner]={bn,bj};
+    });
+
+    const cur=calcWeek(insRows,revRows,minerCatMap,curFrom,curTo,oc);
+    const cmp=(cmpFrom&&cmpTo)?calcWeek(insRows,revRows,minerCatMap,cmpFrom,cmpTo,oc):null;
+
+    const rpt={cur,cmp,curFrom,curTo,cmpFrom,cmpTo,fn:$('fileName').textContent,oc};
+    window._lastRpt=rpt;
+    saveHist(rpt);
+    renderReport(rpt);
+    $('btnExport').style.display='inline-block';
+    setSt(`完成：本周 ${curFrom}～${curTo}${cmp?'，已生成对比':'，无对比周'}`);
+  }catch(ex){setSt('错误：'+ex.message);console.error(ex);}
+}
+
+function renderReport(rpt){
+  const{cur,cmp,curFrom,curTo,cmpFrom,cmpTo}=rpt;
+  const hasCmp=!!cmp;
+
+  const CT=cur._total.total;
+  const CU=cur._total.byBase['U本位'];
+  const CB=cur._total.byBase['币本位'];
+  const PT=hasCmp?cmp._total.total:null;
+  const PU=hasCmp?cmp._total.byBase['U本位']:null;
+  const PB=hasCmp?cmp._total.byBase['币本位']:null;
+
+  let h=`<div class="card">
+    <div class="report-week-header">
+      <span style="font-size:14px;font-weight:500">周报汇总</span>
+      <span class="week-pill pill-blue">本周 ${curFrom} ～ ${curTo}</span>
+      ${hasCmp?`<span class="week-pill pill-gray">对比 ${cmpFrom} ～ ${cmpTo}</span>`:''}
+    </div>`;
+
+  const cols=hasCmp?
+    ['指标','总揽','U本位','币本位','对比总揽','对比U本位','对比币本位','总揽环比']:
+    ['指标','总揽','U本位','币本位'];
+
+  h+=`<div class="tbl-wrap"><table class="overview-table"><thead><tr>`;
+  cols.forEach(c=>h+=`<th>${c}</th>`);
+  h+=`</tr></thead><tbody>`;
+
+  h+=`<tr class="section-row"><td colspan="${cols.length}">算力指标 &nbsp;·&nbsp; 取周末快照（NS有效取周内7日均值）</td></tr>`;
+  const metrics=[
+    {label:'管理机器数(台)', key:'machines', fmt:(v)=>fN(v,0), isRate:false},
+    {label:'管理算力(P)', key:'manageP', fmt:(v)=>fN(v,2), isRate:false},
+    {label:'NS持有算力(P)', key:'nsHold', fmt:(v)=>fN(v,2), isRate:false},
+    {label:'NS有效算力(P)', key:'nsEff', fmt:(v)=>fN(v,2), isRate:false},
+    {label:'周算力达成率', key:'rate', fmt:(v)=>v!=null?`<span class="${rateClass(v)}">${fPct(v)}</span>`:'—', isRate:true},
+    {label:'剔除异常场地达成率', key:'rateEx', fmt:(v)=>v!=null?`<span class="${rateClass(v)}">${fPct(v)}</span>`:'—', isRate:true},
+  ];
+  metrics.forEach(({label,key,fmt,isRate})=>{
+    h+=`<tr><td>${label}</td>
+      <td class="val">${fmt(CT[key])}</td>
+      <td>${fmt(CU[key])}</td>
+      <td>${fmt(CB[key])}</td>`;
+    if(hasCmp){
+      h+=`<td>${fmt(PT[key])}</td><td>${fmt(PU[key])}</td><td>${fmt(PB[key])}</td>`;
+      h+=`<td>${isRate?deltaRate(CT[key],PT[key]):dAlt(CT[key],PT[key])}</td>`;
+    }
+    h+=`</tr>`;
+  });
+
+  h+=`<tr class="section-row"><td colspan="${cols.length}">收益指标 &nbsp;·&nbsp; 周内累计</td></tr>`;
+  const revMetrics=[
+    {label:'产出BTC(枚)', key:'btc', fmt:(v)=>fN(v,4), isRate:false},
+    {label:'USD收入($)', key:'usd', fmt:(v)=>fN(v,0), isRate:false},
+    {label:'托管运维费($)', key:'cost', fmt:(v)=>fN(v,0), isRate:false},
+    {label:'毛利($)', key:'profit', fmt:(v)=>`<span style="color:${profitColor(v)}">${fN(v,0)}</span>`, isRate:false},
+    {label:'电费占比', key:'elecPct', fmt:(v)=>fPct(v), isRate:true},
+  ];
+  revMetrics.forEach(({label,key,fmt,isRate})=>{
+    h+=`<tr><td>${label}</td>
+      <td class="val">${fmt(CT[key])}</td>
+      <td>${fmt(CU[key])}</td>
+      <td>${fmt(CB[key])}</td>`;
+    if(hasCmp){
+      h+=`<td>${fmt(PT[key])}</td><td>${fmt(PU[key])}</td><td>${fmt(PB[key])}</td>`;
+      h+=`<td>${isRate?deltaRate(CT[key],PT[key]):dAlt(CT[key],PT[key])}</td>`;
+    }
+    h+=`</tr>`;
+  });
+
+  h+=`</tbody></table></div></div>`;
+
+  h+=`<div class="card"><div class="card-title">分类明细</div>`;
+  CATS.forEach(cat=>{
+    const CT2=cur[cat].total,CU2=cur[cat].byBase['U本位'],CB2=cur[cat].byBase['币本位'];
+    const PT2=hasCmp?cmp[cat].total:null;
+    const rid=`acc-${cat}`;
+    h+=`<div class="acc-group">
+      <div class="acc-head" onclick="togAcc('${rid}')">
+        <div class="acc-left">
+          <span style="font-size:12px;font-weight:600">${CAT_NAMES[cat]||cat}</span>
+          <span style="font-size:11px;color:var(--text3)">达成率 ${CT2.rate!=null?fPct(CT2.rate):'—'} &nbsp;|&nbsp; USD ${fN(CT2.usd,0)}</span>
+        </div>
+        <span class="acc-arr" id="${rid}-arr">▼</span>
+      </div>
+      <div class="acc-body" id="${rid}">
+        <div class="tbl-wrap" style="padding:0 14px 12px">
+          <table class="cat-table" style="margin-top:10px">
+            <thead><tr>
+              <th style="text-align:left">指标</th>
+              <th style="text-align:left">本位</th>
+              <th>管理机器数</th><th>NS持有算力(P)</th><th>NS有效算力(P)</th>
+              <th>周达成率</th><th>剔除异常达成率</th><th>产出BTC</th><th>USD收入</th><th>毛利($)</th>
+              ${hasCmp?'<th>对比达成率</th><th>对比剔除率</th><th>达成率环比</th>':''}
+            </tr></thead><tbody>`;
+
+    h+=`<tr class="total-row">
+      <td>总揽</td><td>—</td>
+      <td>${fN(CT2.machines,0)}</td><td>${fN(CT2.nsHold,2)}</td><td>${fN(CT2.nsEff,2)}</td>
+      <td class="${rateClass(CT2.rate||0)}">${fPct(CT2.rate)}</td>
+      <td class="${rateClass(CT2.rateEx||0)}">${fPct(CT2.rateEx)}</td>
+      <td>${fN(CT2.btc,4)}</td><td>${fN(CT2.usd,0)}</td>
+      <td style="color:${profitColor(CT2.profit)}">${fN(CT2.profit,0)}</td>
+      ${hasCmp?`<td class="${rateClass(PT2?.rate||0)}">${fPct(PT2?.rate)}</td><td class="${rateClass(PT2?.rateEx||0)}">${fPct(PT2?.rateEx)}</td><td>${deltaRate(CT2.rate,PT2?.rate)}</td>`:''}
+    </tr>`;
+
+    const PU2=hasCmp?cmp[cat].byBase['U本位']:null;
+    h+=`<tr class="sub-row">
+      <td>U本位</td><td style="color:var(--text3)">U本位</td>
+      <td>${fN(CU2.machines,0)}</td><td>${fN(CU2.nsHold,2)}</td><td>${fN(CU2.nsEff,2)}</td>
+      <td class="${rateClass(CU2.rate||0)}">${fPct(CU2.rate)}</td>
+      <td class="${rateClass(CU2.rateEx||0)}">${fPct(CU2.rateEx)}</td>
+      <td>${fN(CU2.btc,4)}</td><td>${fN(CU2.usd,0)}</td>
+      <td style="color:${profitColor(CU2.profit)}">${fN(CU2.profit,0)}</td>
+      ${hasCmp?`<td class="${rateClass(PU2?.rate||0)}">${fPct(PU2?.rate)}</td><td class="${rateClass(PU2?.rateEx||0)}">${fPct(PU2?.rateEx)}</td><td>${deltaRate(CU2.rate,PU2?.rate)}</td>`:''}
+    </tr>`;
+
+    const PB2=hasCmp?cmp[cat].byBase['币本位']:null;
+    h+=`<tr class="sub-row">
+      <td>币本位</td><td style="color:var(--text3)">币本位</td>
+      <td>${fN(CB2.machines,0)}</td><td>${fN(CB2.nsHold,2)}</td><td>${fN(CB2.nsEff,2)}</td>
+      <td class="${rateClass(CB2.rate||0)}">${fPct(CB2.rate)}</td>
+      <td class="${rateClass(CB2.rateEx||0)}">${fPct(CB2.rateEx)}</td>
+      <td>${fN(CB2.btc,4)}</td><td>${fN(CB2.usd,0)}</td>
+      <td style="color:${profitColor(CB2.profit)}">${fN(CB2.profit,0)}</td>
+      ${hasCmp?`<td class="${rateClass(PB2?.rate||0)}">${fPct(PB2?.rate)}</td><td class="${rateClass(PB2?.rateEx||0)}">${fPct(PB2?.rateEx)}</td><td>${deltaRate(CB2.rate,PB2?.rate)}</td>`:''}
+    </tr>`;
+
+    h+=`</tbody></table></div></div></div>`;
+  });
+  h+=`</div>`;
+
+  $('reportArea').innerHTML=h;
+  if(window._lastRpt){
+    const t=window._lastRpt.cur._total.total;
+    $('lp_btc').textContent=fN(t.btc,4)+' BTC';
+    $('lp_cost').textContent='$'+fN(t.cost,0);
+    $('priceCalcCard').style.display='block';
+    calcLiveProfit();
+  }
+}
+
+function togAcc(id){const b=$(id),a=$(`${id}-arr`);const o=b.classList.toggle('open');a.classList.toggle('open',o);}
+
+function exportExcel(){
+  const rpt=window._lastRpt;
+  if(!rpt){alert('请先生成周报');return;}
+  const{cur,cmp,curFrom,curTo,cmpFrom,cmpTo}=rpt;
+  const hasCmp=!!cmp;
+  const ewb=XLSX.utils.book_new();
+
+  const hdr=['分类','维度','管理机器数','管理算力(P)','NS持有(P)','NS有效(P)','周达成率','剔除异常达成率','产出BTC','USD收入','托管运维费','毛利','电费占比'];
+  if(hasCmp) hdr.push('对比周达成率','达成率环比(pp)','USD环比');
+  const rows=[['NS周报汇总',`本周:${curFrom}~${curTo}${hasCmp?` 对比:${cmpFrom}~${cmpTo}`:''}`,],[],hdr];
+
+  const addRows=(cat,label,obj,cmpObj)=>{
+    const r=[label,'总揽',obj.total.machines,obj.total.manageP,obj.total.nsHold,obj.total.nsEff,
+      obj.total.rate,obj.total.rateEx,obj.total.btc,obj.total.usd,obj.total.cost,obj.total.profit,obj.total.elecPct];
+    if(hasCmp&&cmpObj){r.push(cmpObj.total.rate,(obj.total.rate??0)-(cmpObj.total.rate??0),(obj.total.usd??0)-(cmpObj.total.usd??0));}
+    rows.push(r);
+    ['U本位','币本位'].forEach(base=>{
+      const b=obj.byBase[base],cb=cmpObj?.byBase[base];
+      const br=['',base,b.machines,b.manageP,b.nsHold,b.nsEff,b.rate,b.rateEx,b.btc,b.usd,b.cost,b.profit,b.elecPct];
+      if(hasCmp&&cb){br.push(cb.rate,(b.rate??0)-(cb.rate??0),(b.usd??0)-(cb.usd??0));}
+      rows.push(br);
+    });
+  };
+  CATS.forEach(cat=>addRows(cat,CAT_NAMES[cat]||cat,cur[cat],cmp?.[cat]));
+  addRows('总计','所有种类总计',cur._total,cmp?._total);
+  XLSX.utils.book_append_sheet(ewb,XLSX.utils.aoa_to_sheet(rows),'周报汇总');
+  XLSX.writeFile(ewb,`NS周报_${curFrom}_${curTo}.xlsx`);
+}
+
+const HK='ns_weekly_hist_v1';
+function loadH(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch{return[];}}
+function saveHist(rpt){
+  try{
+    const arr=loadH();
+    const t=rpt.cur._total.total;
+    arr.unshift({id:Date.now(),
+      curFrom:rpt.curFrom,curTo:rpt.curTo,
+      cmpFrom:rpt.cmpFrom,cmpTo:rpt.cmpTo,
+      fn:rpt.fn,
+      rate:t.rate,usd:t.usd,profit:t.profit,btc:t.btc,
+      at:new Date().toLocaleString('zh-CN')
+    });
+    const trimmed=arr.slice(0,20);
+    try{localStorage.setItem(HK,JSON.stringify(trimmed));}
+    catch(e){localStorage.setItem(HK,JSON.stringify(trimmed.slice(0,5)));}
+  }catch(e){console.warn('历史保存失败',e);}
+}
+function renderHist(){
+  const arr=loadH(),el=$('histList');
+  if(!arr.length){el.innerHTML='<div class="empty">暂无历史记录<br>每次生成周报后自动保存</div>';return;}
+  el.innerHTML=arr.map((h,i)=>{
+    const rateColor=h.rate>=0.9?'var(--green)':h.rate>=0.7?'var(--amber)':'var(--red)';
+    return `<div class="hist-item">
+      <div>
+        <div class="hist-date">${h.curFrom} ～ ${h.curTo}</div>
+        ${h.cmpFrom?`<div style="font-size:10px;color:var(--text3)">对比 ${h.cmpFrom}～${h.cmpTo}</div>`:''}
+        <div style="font-size:10px;color:var(--text3);margin-top:1px">${h.at}</div>
+      </div>
+      <div class="hist-meta">${h.fn||'—'} · USD ${h.usd?'$'+(h.usd/1000).toFixed(1)+'K':'—'} · BTC ${h.btc?h.btc.toFixed(4):'—'}枚</div>
+      <div style="font-size:13px;font-weight:500;color:${rateColor};min-width:52px;text-align:right">${h.rate!=null?fPct(h.rate):'—'}</div>
+      <div class="hist-acts">
+        <button class="btn btn-sm" onclick="delH(${i})">删除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function delH(i){const arr=loadH();arr.splice(i,1);localStorage.setItem(HK,JSON.stringify(arr));renderHist();}
+
+function showPage(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  $(`page-${name}`).classList.add('active');
+  if(el)el.classList.add('active');
+  if(name==='history')renderHist();
+}
+
+// ── 已经优化：利用 allorigins 解决前端本地环境下的跨域 CORS 问题 ──
+async function fetchBTCPrice(){
+  const btn=$('btnFetchPrice');
+  btn.textContent='获取中...';btn.disabled=true;
+  $('priceSource').textContent='正在获取...';
+  
+  const sources=[
+    {name:'Coinbase',url:'https://api.allorigins.win/raw?url=https://api.coinbase.com/v2/prices/BTC-USD/spot',
+     parse:d=>parseFloat(d?.data?.amount)},
+    {name:'Binance',url:'https://api.allorigins.win/raw?url=https://api.binance.com/api/v3/ticker/price%3Fsymbol%3DBTCUSDT',
+     parse:d=>parseFloat(d?.price)},
+    {name:'Kraken',url:'https://api.allorigins.win/raw?url=https://api.kraken.com/0/public/Ticker%3Fpair%3DXBTUSD',
+     parse:d=>parseFloat(d?.result?.XXBTZUSD?.c?.[0])},
+  ];
+  
+  let ok=false;
+  for(const src of sources){
+    try{
+      const ctrl=new AbortController();
+      const tid=setTimeout(()=>ctrl.abort(),7000); // 宽延至 7 秒超时
+      const res=await fetch(src.url,{signal:ctrl.signal});
+      clearTimeout(tid);
+      if(!res.ok) continue;
+      const data=await res.json();
+      const price=src.parse(data);
+      if(price&&price>0){
+        $('livePrice').value=Math.round(price);
+        $('priceSource').textContent='来源: '+src.name+'(经过代理) · '+new Date().toLocaleTimeString('zh-CN');
+        calcLiveProfit();
+        ok=true;
+        break;
+      }
+    }catch(e){ /* 出错则自动轮询下一个交易所源 */ }
+  }
+  if(!ok){
+    $('priceSource').innerHTML='<span style="color:var(--red)">自动抓取失败，可能是当前网络请求被拦截，请手动输入价格</span>';
+  }
+  btn.textContent='⟳ 获取实时价';btn.disabled=false;
+}
+
+function calcLiveProfit(){
+  if(!window._lastRpt) return;
+  const price=parseFloat($('livePrice').value)||0;
+  const btc=window._lastRpt.cur._total.total.btc||0;
+  const cost=window._lastRpt.cur._total.total.cost||0;
+  if(price>0&&btc>0){
+    const usd=btc*price;
+    const profit=usd-cost;
+    const elec=usd>0?cost/usd:null;
+    $('lp_usd').textContent='$'+fN(usd,0);
+    $('lp_profit').textContent=(profit>=0?'+':'')+fN(profit,0)+' USD';
+    $('lp_profit').style.color=profitColor(profit);
+    $('lp_elec').textContent=fPct(elec);
+  }
+}
+function setSt(m){$('statusMsg').textContent=m;}
+</script>
+</body>
+</html>
