@@ -437,8 +437,13 @@ function deltaRate(cur,cmp){
 // =======================
 // 新增：映射表读取与应用 (顶层驱动设计)
 // =======================
-let _siteMapping = {}; // url/code -> { name, cat }
-let mapWb = null;
+let _siteMapping = []; // Array of { name, cat, links: [] }
+
+// 去除 URL 前缀和无关字符，用于做精确/模糊包含匹配
+function normStr(str) {
+    if (!str) return '';
+    return String(str).toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
+}
 
 function onMapDrop(e){e.preventDefault();$('mapDropZone').classList.remove('drag');readMapFile(e.dataTransfer.files[0]);}
 function onMapFileChange(e){
@@ -456,7 +461,7 @@ function readMapFile(file){
   r.onload=e=>{
     setTimeout(() => {
         try{
-          mapWb=XLSX.read(e.target.result,{type:'array'});
+          let mapWb=XLSX.read(e.target.result,{type:'array'});
           $('mapFileName').textContent=file.name;
 
           let targetSheet = mapWb.SheetNames.find(n=>n.includes('SADG观察者链接')||n.includes('观察者'));
@@ -465,49 +470,55 @@ function readMapFile(file){
           const sheet = mapWb.Sheets[targetSheet];
           const raw = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
 
-          _siteMapping = {};
+          _siteMapping = [];
           if(raw && raw.length > 0) {
-             let nameIdx=-1, mainIdx=-1, subIdx=-1;
+             let catIdx=0, nameIdx=1, mainIdx=2, subIdx=3; // 默认A, B, C, D列
              // 寻找表头
              for(let i=0; i<Math.min(10, raw.length); i++) {
                  if(!raw[i]) continue;
                  const hr = raw[i].map(String);
+                 let foundHeader = false;
                  hr.forEach((h, idx)=>{
+                     if(h.includes('类别')||h.includes('分类')) { catIdx=idx; foundHeader=true; }
                      if(h.includes('场地名称')||h.includes('场地')) nameIdx=idx;
-                     if(h.includes('主')||(h.includes('观察者')&&!h.includes('备'))) mainIdx=idx;
+                     if(h.includes('主')||(h.includes('链接')&&!h.includes('备'))) mainIdx=idx;
                      if(h.includes('备')) subIdx=idx;
                  });
-                 if(nameIdx!==-1) break; 
+                 if(foundHeader) break; 
              }
 
-             // 解析数据并处理合并单元格产生的空白分类 (继承上一行)
+             // 解析数据并处理合并单元格产生的空白分类 (继承上一行的A列)
              let lastCat = '';
              raw.forEach((row, rowIndex) => {
-                 if(!row || rowIndex === 0) return; 
+                 if(!row || rowIndex === 0) return; // 假设第一行是表头
                  
-                 let currentCat = row[0] ? String(row[0]).trim() : ''; 
+                 let currentCat = row[catIdx] ? String(row[catIdx]).trim() : ''; 
                  if (currentCat) {
                      lastCat = currentCat;
                  } else {
                      currentCat = lastCat; // 向下继承分类
                  }
 
-                 let name = nameIdx!==-1 && row[nameIdx] ? String(row[nameIdx]).trim() : '';
-                 let mainLink = mainIdx!==-1 && row[mainIdx] ? String(row[mainIdx]).trim() : '';
-                 let subLink = subIdx!==-1 && row[subIdx] ? String(row[subIdx]).trim() : '';
+                 let name = row[nameIdx] ? String(row[nameIdx]).trim() : '';
+                 let mainLink = row[mainIdx] ? String(row[mainIdx]).trim() : '';
+                 let subLink = row[subIdx] ? String(row[subIdx]).trim() : '';
 
-                 if(name) {
-                     if(mainLink) _siteMapping[mainLink] = { name, cat: currentCat };
-                     if(subLink) _siteMapping[subLink] = { name, cat: currentCat };
+                 let links = [];
+                 if(mainLink) links.push(normStr(mainLink));
+                 if(subLink) links.push(normStr(subLink));
+                 
+                 // 必须有场地名称，并且至少有一个抓手(链接)
+                 if (name && links.length > 0) {
+                     _siteMapping.push({ cat: currentCat, name: name, links: links });
                  }
              });
           }
 
-          const count = Object.keys(_siteMapping).length;
+          const count = _siteMapping.length;
           if (count === 0) {
-              $('mapSheetInfo').innerHTML = `<span style="color:var(--red)">未识别到表头，若您上传的是CSV格式可能存在乱码，请转存为 Excel(.xlsx) 后重传</span>`;
+              $('mapSheetInfo').innerHTML = `<span style="color:var(--red)">未识别到数据，请检查表格格式</span>`;
           } else {
-              $('mapSheetInfo').textContent=`已记录 ${count} 个观察者链接关联`;
+              $('mapSheetInfo').textContent=`已成功构建 ${count} 个场地名称映射规则`;
           }
           setSt('映射表读取完成，请上传周报数据或点击生成周报');
         }catch(ex){
@@ -520,41 +531,49 @@ function readMapFile(file){
   r.readAsArrayBuffer(file);
 }
 
-// 核心方法：提取场地信息（通过主/备链接模糊匹配）
+// 核心方法：提取场地信息（通过主/备链接模糊包含匹配，把数据收编到对应的场地名称下）
 function getSiteInfo(row) {
   let code = String(gIdx(row, 2) || gRow(row, '场地编号') || '').trim();
   let rawCat = String(gIdx(row, 65) || gRow(row, '分类') || '').trim();
   let eVal = String(gIdx(row, 4) || '');
   let gVal = String(gIdx(row, 6) || gRow(row, '客户名') || '');
 
-  let siteName = eVal.includes('\n') ? eVal.split('\n')[1].trim() : (gVal || code);
-  let cat = rawCat;
+  let siteName = '';
+  let cat = '';
   let matched = false;
 
-  // 1. 用场地编号(code)去匹配映射表里的 主/备链接 (支持部分包含匹配)
-  if (code) {
-      if (_siteMapping[code]) {
-          siteName = _siteMapping[code].name;
-          if (_siteMapping[code].cat) cat = _siteMapping[code].cat;
-          matched = true;
-      } else {
-          for (let link in _siteMapping) {
-              if (link.includes(code) || code.includes(link)) {
-                  siteName = _siteMapping[link].name;
-                  if (_siteMapping[link].cat) cat = _siteMapping[link].cat;
-                  matched = true;
-                  break;
-              }
+  // 提取有可能包含链接的列内容进行校验
+  let nCode = normStr(code);
+  let nEVal = normStr(eVal.replace(/\n/g, ' '));
+  let nGVal = normStr(gVal);
+
+  // 1. 全局遍历映射表，只要巡查表里包含 mapping里的链接（主或备），就算匹配成功
+  for (let site of _siteMapping) {
+      for (let link of site.links) {
+          if (link.length < 3) continue; // 防误判短字符
+          // 交叉包含匹配
+          if (
+              (nCode && (nCode.includes(link) || link.includes(nCode))) ||
+              (nEVal && (nEVal.includes(link) || link.includes(nEVal))) ||
+              (nGVal && (nGVal.includes(link) || link.includes(nGVal)))
+          ) {
+              siteName = site.name;
+              cat = site.cat;
+              matched = true;
+              break;
           }
       }
+      if (matched) break;
   }
 
-  // 2. 强规则硬编码与兜底
+  // 2. 如果彻底没在映射表里找到抓手，使用常规兜底逻辑
   if (!matched) {
+      siteName = eVal.includes('\n') ? eVal.split('\n')[1].trim() : (gVal || code);
+      cat = rawCat;
+
       if (code === 'ND1' || siteName === 'ND1') { siteName = 'ECND01'; }
       if (code === 'ND2' || siteName === 'ND2') { siteName = 'TTHND01'; }
 
-      // 3. 客户名智能纠错分类（兜底）
       const kws = ['SAD', '新合资', '老合资', '我方代', '已经出'];
       for (let kw of kws) {
           if (gVal.includes(kw) || siteName.includes(kw)) {
@@ -1297,7 +1316,7 @@ function renderSites(){
         <thead><tr>
           <th style="width:28px">#</th>
           <th style="min-width:180px">场地名称</th>
-          <th>场地代码</th>
+          <th>抓手代码</th>
           <th class="r">总托管数量</th>
           <th class="r">总算力(T)</th>
           <th class="r">场地周毛利($)</th>
