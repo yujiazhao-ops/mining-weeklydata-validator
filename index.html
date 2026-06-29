@@ -113,6 +113,23 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .hist-meta{font-size:11px;color:var(--text2);flex:1}
 .hist-acts{display:flex;gap:5px;flex-shrink:0}
 .empty{text-align:center;padding:36px;color:var(--text3);line-height:2}
+/* 场地明细 */
+.site-group{margin-bottom:14px}
+.site-group-head{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg2);border-radius:var(--r);border:.5px solid var(--border);margin-bottom:6px}
+.site-group-name{font-size:12px;font-weight:600}
+.site-group-count{font-size:11px;color:var(--text3);background:var(--bg);border:.5px solid var(--border);padding:1px 8px;border-radius:10px}
+.site-table{width:100%;border-collapse:collapse;font-size:12px;min-width:700px}
+.site-table th{padding:7px 10px;font-size:11px;font-weight:500;color:var(--text2);text-align:left;border-bottom:.5px solid var(--border);background:var(--bg2);white-space:nowrap}
+.site-table th.r{text-align:right}
+.site-table td{padding:7px 10px;border-bottom:.5px solid var(--border);vertical-align:middle}
+.site-table td.r{text-align:right}
+.site-table tr:last-child td{border-bottom:none}
+.site-table tr:hover td{background:var(--bg2)}
+
+.eff-bar-wrap{display:flex;align-items:center;gap:6px}
+.eff-bar{flex:1;height:4px;background:var(--border);border-radius:2px;min-width:40px}
+.eff-bar-fill{height:4px;border-radius:2px}
+.alert-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;flex-shrink:0}
 
 /* 规则 */
 .rule-item{display:flex;gap:8px;padding:9px 11px;background:var(--bg2);border-radius:6px;margin-bottom:5px}
@@ -133,6 +150,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   </div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('report',this)">周报</button>
+    <button class="nav-tab" onclick="showPage('sites',this)">场地</button>
     <button class="nav-tab" onclick="showPage('history',this)">历史</button>
     <button class="nav-tab" onclick="showPage('rules',this)">规则</button>
   </div>
@@ -141,7 +159,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <div id="page-report" class="page active">
   <div class="card">
     <div class="card-title">上传文件 & 参数配置</div>
-    <div class="upload-zone" id="dropZone" ondragover="onDrag(event,true)" ondragleave="onDrag(event,false)" ondrop="onDrop(event)">
+    <div class="upload-zone" id="dropZone" ondragover="onDrag(event,true,'dropZone')" ondragleave="onDrag(event,false,'dropZone')" ondrop="onDrop(event)">
       <input type="file" accept=".xlsx,.xls" onchange="onFileChange(event)">
       <div style="font-size:22px;margin-bottom:5px">📊</div>
       <div class="upload-title">点击选择或拖拽 Excel 文件</div>
@@ -277,6 +295,40 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <div id="reportArea"></div>
 </div>
 
+<div id="page-sites" class="page">
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px;font-weight:500">场地明细</span>
+        <span id="sites-week-badge" style="font-size:12px;color:var(--blue);background:var(--blue-bg);border-radius:4px;padding:2px 8px"></span>
+      </div>
+      <label style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer">
+        <input type="checkbox" id="sitesHideGood" onchange="renderSites()"> 仅显示有问题场地
+      </label>
+    </div>
+    <div class="upload-zone" id="siteDropZone" style="padding:16px 20px"
+      ondragover="onDrag(event,true,'siteDropZone')" ondragleave="onDrag(event,false,'siteDropZone')" ondrop="onSiteDrop(event)">
+      <input type="file" accept=".xlsx,.xls" onchange="onSiteFileChange(event)">
+      <div style="font-size:13px;font-weight:500;margin-bottom:2px">上传场地周报 xlsx（用于对照校验，可选）</div>
+      <div style="font-size:11px;color:var(--text3)">场地数据从巡查表实时计算，上传周报表后可对比校验机器数/算力/毛利</div>
+    </div>
+    <div id="siteFileInfo" style="display:none;margin-top:8px" class="file-ok">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3b6d11" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span class="file-name" id="siteFileName"></span>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px">
+        <label class="lbl">选择周 Sheet</label>
+        <select id="selSiteSheet" onchange="loadSiteSheet()"></select>
+      </div>
+      <div style="padding-top:18px">
+        <span class="status" id="siteStatus"></span>
+      </div>
+    </div>
+  </div>
+  <div id="sitesArea"><div class="empty">请先在「周报」页生成报告（场地数据从巡查表计算）<br>可选：上传场地周报表进行对照校验</div></div>
+</div>
+
 <div id="page-history" class="page">
   <div class="card">
     <div class="card-title">历史周报记录 <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">· 本地浏览器 · 最多20条</span></div>
@@ -290,7 +342,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="rule-item"><span class="rule-id">M1</span><div><div class="rule-name">管理机器数（台）</div><div class="rule-desc">SUMIFS(H列持有机器数, 日期=周末, BN列=分类)，总揽不过滤采购分类，U本位/币本位列额外过滤BJ列</div></div></div>
     <div class="rule-item"><span class="rule-id">M2</span><div><div class="rule-name">管理算力（P）</div><div class="rule-desc">SUMIFS(K列理论总算力, 日期=周末, BN列=分类)，同上</div></div></div>
     <div class="rule-item"><span class="rule-id">M3</span><div><div class="rule-name">NS持有算力（P）</div><div class="rule-desc">SUMIFS(BA列ns算力, 日期=周末, BN列=分类)，取周末最后一天快照</div></div></div>
-    <div class="rule-item"><span class="rule-id">M4</span><div><div class="rule-name">NS有效算力（P）</div><div class="rule-desc">SUMIFS(BM列ns实际算力, 日期∈周内, BN=分类, BJ∈[U本位/币本位], BK==正常) ÷ 7，取周内 7 天平均</div></div></div>
+    <div class="rule-item"><span class="rule-id">M4</span><div><div class="rule-name">NS有效算力（P）</div><div class="rule-desc">SUMIFS(BM列ns实际算力, 日期∈周内, BN=分类, BJ∈[U本位/币本位], BK≠需剔除场地) ÷ 7，取周内7天平均</div></div></div>
     <div class="rule-item"><span class="rule-id">M5</span><div><div class="rule-name">周算力达成率</div><div class="rule-desc">NS有效算力 ÷ (NS持有算力 + 超频附加值)，超频附加值按分类单独维护</div></div></div>
     <div class="rule-item"><span class="rule-id">M6</span><div><div class="rule-name">剔除异常场地达成率</div><div class="rule-desc">NS有效算力 ÷ (SUMIFS(BL列ns持有去故障, 日期=周末, BK=正常) + 超频附加值)</div></div></div>
   </div>
@@ -325,6 +377,7 @@ function n(v){
   return isNaN(f)?null:f;
 }
 
+// 安全读取行字段：支持换行符/空格/无分隔三种key变体
 function gRow(row,key){
   if(row[key]!=null&&row[key]!=='') return row[key];
   const k2=key.replace(/\n/g,' ').trim();
@@ -333,6 +386,7 @@ function gRow(row,key){
   if(row[k3]!=null&&row[k3]!=='') return row[k3];
   return '';
 }
+// 按列索引直接读取（解决重名列被覆盖问题）
 function gIdx(row,idx){return row['__idx_'+idx]??'';}
 function fN(v,d=2){return v!=null?Number(v).toFixed(d):'—';}
 function fPct(v){return v!=null?`${(Number(v)*100).toFixed(2)}%`:'—';}
@@ -341,20 +395,25 @@ function profitColor(v){return (v||0)>=0?'var(--green)':'var(--red)';}
 function rateClass(r){return r>=0.9?'rate-high':r>=0.7?'rate-mid':'rate-low';}
 function normDate(s){
   if(s==null||s==='') return '';
+  // Excel 序列号（纯数字，通常 4万多）转日期
   if(typeof s==='number'||(/^\d+(\.\d+)?$/.test(String(s).trim())&&parseFloat(s)>40000&&parseFloat(s)<60000)){
     const serial=parseFloat(s);
+    // Excel 日期起点 1899-12-30
     const d=new Date(Date.UTC(1899,11,30)+serial*86400000);
     const y=d.getUTCFullYear(),m=String(d.getUTCMonth()+1).padStart(2,'0'),day=String(d.getUTCDate()).padStart(2,'0');
     return `${y}-${m}-${day}`;
   }
+  // ISO 格式或带时间的字符串
   const str=String(s).trim();
+  // 提取 yyyy-mm-dd 或 yyyy/mm/dd
   const m=str.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
   if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  // 兜底：原逻辑
   const p=str.replace(/\//g,'-').replace(/\s.*/,'').trim().split('-');
   if(p.length<3) return str.slice(0,10);
   return `${p[0]}-${p[1].padStart(2,'0')}-${p[2].padStart(2,'0')}`;
 }
-function dAlt(cur,cmp){
+function delta(cur,cmp){
   if(cmp==null||cmp===0||cur==null) return '<span class="delta-na">—</span>';
   const d=(cur-cmp)/Math.abs(cmp);
   const sign=d>0?'+':'';
@@ -369,6 +428,7 @@ function deltaRate(cur,cmp){
   return `<span class="${cls}">${sign}${(d*100).toFixed(2)}pp</span>`;
 }
 
+// ── 超频参数 ──
 const OC_KEY='ns_weekly_oc_v3';
 const OC_IDS=[
   ['oc_sad_coin','oc_sad_u'],['oc_new_coin','oc_new_u'],
@@ -425,8 +485,9 @@ function getOC(){
 }
 initOC();
 
+// ── 文件读取 ──
 let wb=null;
-function onDrag(e,on){e.preventDefault();$('dropZone').classList.toggle('drag',on);}
+function onDrag(e,on,zoneId){e.preventDefault();$(zoneId||'dropZone')?.classList.toggle('drag',on);}
 function onDrop(e){e.preventDefault();$('dropZone').classList.remove('drag');readFile(e.dataTransfer.files[0]);}
 function onFileChange(e){readFile(e.target.files[0]);}
 function readFile(file){
@@ -454,11 +515,14 @@ function updateSels(names){
   ['收益表同步'].forEach(p=>{if(names.includes(p))$('selRev').value=p;});
 }
 function toRows(sheet){
+  // cellDates:true 让日期成为 Date 对象，避免序列号/格式问题
   const raw=XLSX.utils.sheet_to_json(sheet,{raw:true,defval:'',header:1,cellDates:true});
   if(!raw||raw.length<2) return [];
   const hdr=raw[0];
+  // 用第一列（登记日期）是否有值来判断数据起始行（跳过空行）
   let dataStart=1;
   while(dataStart<raw.length&&(!raw[dataStart][0]||raw[dataStart][0]==='')) dataStart++;
+  // 建立列名→索引映射（遇到重名只保留第一次出现，避免重名列覆盖）
   const nameToIdx={};
   hdr.forEach((name,i)=>{
     if(name==null||name==='') return;
@@ -466,12 +530,14 @@ function toRows(sheet){
     if(nameToIdx[k]==null) nameToIdx[k]=i;
     const k2=k.replace(/\n/g,' ');
     if(nameToIdx[k2]==null) nameToIdx[k2]=i;
-    const k3=k.replace(/\n/g,'').trim();
+    const k3=k.replace(/\n/g,'');
     if(nameToIdx[k3]==null) nameToIdx[k3]=i;
   });
+  // 日期列索引（用于把 Date 对象转字符串）
   const dateColIdx=nameToIdx['登记日期'];
   const toDateStr=v=>{
     if(v instanceof Date){
+      // 用 UTC 方法读取，与 xlsx.js 的 UTC 解析对齐（避免本地时区偏移一天）
       const y=v.getUTCFullYear(),m=String(v.getUTCMonth()+1).padStart(2,'0'),d=String(v.getUTCDate()).padStart(2,'0');
       return `${y}-${m}-${d}`;
     }
@@ -489,18 +555,22 @@ function toRows(sheet){
   });
 }
 
+// ── 常量 ──
 const CATS=['SAD','新合资','老合资','其他项','我方代','已经出'];
 const CAT_NAMES={'SAD':'SADG自营','新合资':'新合资（赵总）','老合资':'老合资','其他项':'其他项目','我方代':'我方代托','已经出':'已经出售/争议'};
 const BJ_VALID=['U本位','币本位'];
 
+// ── 核心计算 ──
 function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
   const result={};
   CATS.forEach(cat=>{result[cat]={total:{},byBase:{'U本位':{},'币本位':{}}};});
 
+  // ── 算力部分 ──
   CATS.forEach(cat=>{
-    const isProxy=cat==='我方代'; 
+    const isProxy=cat==='我方代'; // 我方代用 I/X 列计算达成率
     const ocVal=oc[cat]||0;
 
+    // byBase（U本位/币本位）
     ['U本位','币本位'].forEach(base=>{
       let sumH=0,sumK=0,sumBA=0,sumBL=0,sumBM=0,sumI=0,sumX=0;
       insRows.forEach(row=>{
@@ -515,10 +585,10 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
           sumH+=n(gIdx(row,7) ||gRow(row,'持有机器数'))||0;
           sumK+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
           sumBA+=n(gIdx(row,52)||gRow(row,'ns算力'))||0;
-          if(bk==='正常') sumBL+=n(gIdx(row,63)||gRow(row,'ns持有算力（去故障）计算剔除0算力场地用'))||0;
+          if(bk!=='需剔除场地') sumBL+=n(gIdx(row,63)||gRow(row,'ns持有算力（去故障）计算剔除0算力场地用'))||0;
         }
         if(date>=from&&date<=to){
-          if(bk==='正常'){
+          if(bk!=='需剔除场地'){
             sumBM+=n(gIdx(row,64)||gRow(row,'ns实际算力'))||0;
             sumI +=n(gIdx(row,8) ||gRow(row,'24h平均算力（P）'))||0;
             sumX +=n(gIdx(row,23)||gRow(row,'架上理论算力(P)'))||0;
@@ -538,6 +608,7 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
       };
     });
 
+    // total（不过滤BJ，NS有效/达成率仅限BJ_VALID）
     let sumH=0,sumK=0,sumBA=0,sumBL=0,sumBM=0,sumI=0,sumX=0;
     insRows.forEach(row=>{
       const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
@@ -547,13 +618,14 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
       const bk=String(gIdx(row,62)||gRow(row,'需剔除场地')||'').trim();
       const date=normDate(String(gRow(row,'登记日期')||''));
       if(bn!==cat) return;
+      const bjValid=BJ_VALID.includes(bj);
       if(date===to){
         sumH+=n(gIdx(row,7) ||gRow(row,'持有机器数'))||0;
         sumK+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
         sumBA+=n(gIdx(row,52)||gRow(row,'ns算力'))||0;
-        if(bk==='正常') sumBL+=n(gIdx(row,63)||gRow(row,'ns持有算力（去故障）计算剔除0算力场地用'))||0;
+        if(bk!=='需剔除场地') sumBL+=n(gIdx(row,63)||gRow(row,'ns持有算力（去故障）计算剔除0算力场地用'))||0;
       }
-      if(date>=from&&date<=to&&bk==='正常'){
+      if(date>=from&&date<=to&&bk!=='需剔除场地'){
         sumBM+=n(gIdx(row,64)||gRow(row,'ns实际算力'))||0;
         sumI +=n(gIdx(row,8) ||gRow(row,'24h平均算力（P）'))||0;
         sumX +=n(gIdx(row,23)||gRow(row,'架上理论算力(P)'))||0;
@@ -571,6 +643,7 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
     };
   });
 
+  // ── 收益部分：按矿工号从巡查表映射 BN(分类)/BJ(本位) 过滤 ──
   CATS.forEach(cat=>{
     ['U本位','币本位','total'].forEach(base=>{
       let sumBtc=0,sumUsd=0,sumProfit=0;
@@ -593,6 +666,7 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
     });
   });
 
+  // ── 全部总揽 ──
   let totH=0,totK=0,totBA=0,totBL=0,totBM=0,totI=0,totX=0,totBtc=0,totUsd=0,totProfit=0;
   const totByBase={'U本位':{H:0,K:0,BA:0,BL:0,BM:0,I:0,X:0,btc:0,usd:0,profit:0},
                    '币本位':{H:0,K:0,BA:0,BL:0,BM:0,I:0,X:0,btc:0,usd:0,profit:0}};
@@ -601,6 +675,8 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
     totH+=t.machines||0;totK+=t.manageP||0;totBA+=t.nsHold||0;
     totBL+=t.nsHoldEx||0;totBM+=t.nsEff||0;
     totBtc+=t.btc||0;totUsd+=t.usd||0;totProfit+=t.profit||0;
+    // 总揽的 I/X 汇总（用于我方代在总揽里的贡献）
+    // 总揽有效算力用 BM（NS模式），不用 I/X
     ['U本位','币本位'].forEach(base=>{
       const b=result[cat].byBase[base];
       totByBase[base].H+=b.machines||0;totByBase[base].K+=b.manageP||0;
@@ -610,6 +686,9 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
     });
   });
 
+  // 总揽有效算力 = BM/7（已在各分类total里算好并加总）
+  // 总揽达成率分母 = 总揽BA + 超频总揽值
+  // 总揽剔除达成率分母 = 总揽BL（BK=正常）+ 超频总揽值
   const ocTotObj=oc._total||{coin:0,u:0,total:0};
   const ocTot=ocTotObj.total||0;
   const ocTotCoin=ocTotObj.coin||0;
@@ -621,7 +700,7 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
     btc:b.btc,usd:b.usd,profit:b.profit,cost:b.usd-b.profit,
     elecPct:b.usd>0?(b.usd-b.profit)/b.usd:null
   });
-  const totEff=totBM; 
+  const totEff=totBM; // 已是7日均值
   result._total={
     total:{machines:totH,manageP:totK,nsHold:totBA,nsHoldEx:totBL,nsEff:totEff,
       rate:totBA+ocTot>0?totEff/(totBA+ocTot):null,
@@ -633,6 +712,7 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
   return result;
 }
 
+// ── 主流程 ──
 function runReport(){
   if(!wb){setSt('请先上传文件');return;}
   const s1=$('selIns').value,s2=$('selRev').value;
@@ -643,8 +723,10 @@ function runReport(){
   try{
     const insRows=toRows(wb.Sheets[s1]);
     const revRows=toRows(wb.Sheets[s2]);
+    window._insRows=insRows; window._revRows=revRows;
     const oc=getOC();
 
+    // 建立矿工号→分类映射
     const minerCatMap={};
     insRows.forEach(row=>{
       const miner=String(row['矿工号']||'').split('\n')[0].trim();
@@ -658,6 +740,7 @@ function runReport(){
 
     const rpt={cur,cmp,curFrom,curTo,cmpFrom,cmpTo,fn:$('fileName').textContent,oc};
     window._lastRpt=rpt;
+
     saveHist(rpt);
     renderReport(rpt);
     $('btnExport').style.display='inline-block';
@@ -665,10 +748,12 @@ function runReport(){
   }catch(ex){setSt('错误：'+ex.message);console.error(ex);}
 }
 
+// ── 渲染 ──
 function renderReport(rpt){
   const{cur,cmp,curFrom,curTo,cmpFrom,cmpTo}=rpt;
   const hasCmp=!!cmp;
 
+  // 总揽总计
   const CT=cur._total.total;
   const CU=cur._total.byBase['U本位'];
   const CB=cur._total.byBase['币本位'];
@@ -676,6 +761,7 @@ function renderReport(rpt){
   const PU=hasCmp?cmp._total.byBase['U本位']:null;
   const PB=hasCmp?cmp._total.byBase['币本位']:null;
 
+  // 顶部周标签
   let h=`<div class="card">
     <div class="report-week-header">
       <span style="font-size:14px;font-weight:500">周报汇总</span>
@@ -683,6 +769,7 @@ function renderReport(rpt){
       ${hasCmp?`<span class="week-pill pill-gray">对比 ${cmpFrom} ～ ${cmpTo}</span>`:''}
     </div>`;
 
+  // 总览对比表
   const cols=hasCmp?
     ['指标','总揽','U本位','币本位','对比总揽','对比U本位','对比币本位','总揽环比']:
     ['指标','总揽','U本位','币本位'];
@@ -691,12 +778,40 @@ function renderReport(rpt){
   cols.forEach(c=>h+=`<th>${c}</th>`);
   h+=`</tr></thead><tbody>`;
 
+  // 算力行
+  h+=`<tr class="section-row"><td colspan="${cols.length}">算力指标 &nbsp;·&nbsp; 取周末快照（NS有效取周内7日均值）</td></tr>`;
+  const pwrRows=[
+    ['管理机器数(台)', r=>fN(r.machines,0), false],
+    ['管理算力(P)', r=>fN(r.manageP,2), false],
+    ['NS持有算力(P)', r=>fN(r.nsHold,2), false],
+    ['NS有效算力(P)', r=>fN(r.nsEff,2), false],
+    ['周算力达成率', r=>r.rate!=null?`<span class="${rateClass(r.rate)}">${fPct(r.rate)}</span>`:'—', true],
+    ['剔除异常场地达成率', r=>r.rateEx!=null?`<span class="${rateClass(r.rateEx)}">${fPct(r.rateEx)}</span>`:'—', true],
+  ];
+  pwrRows.forEach(([label,fmt,isRate])=>{
+    h+=`<tr><td>${label}</td><td class="val">${fmt(CT)}</td><td>${fmt(CU)}</td><td>${fmt(CB)}</td>`;
+    if(hasCmp){
+      h+=`<td>${fmt(PT)}</td><td>${fmt(PU)}</td><td>${fmt(PB)}</td>`;
+      const curV=CT[Object.keys(CT).find(k=>fmt(CT)===fmt({[k]:CT[k],...CT}))];
+      h+=`<td>${isRate?deltaRate(CT.rate,PT?.rate):delta(CT.machines,PT?.machines)}</td>`;
+      // 重新按实际字段做环比
+    }
+    h+=`</tr>`;
+  });
+
+  // 环比单独处理
+  // 重写一下：直接按字段做
+  h=h.replace(/<\/tbody>/, '');
+  // 清空已添加的行，重新用正确方式渲染
+  const lastSectionIdx=h.lastIndexOf('<tr class="section-row">');
+  h=h.slice(0,lastSectionIdx);
+
   h+=`<tr class="section-row"><td colspan="${cols.length}">算力指标 &nbsp;·&nbsp; 取周末快照（NS有效取周内7日均值）</td></tr>`;
   const metrics=[
-    {label:'管理机器数(台)', key:'machines', fmt:(v)=>fN(v,0), isRate:false},
-    {label:'管理算力(P)', key:'manageP', fmt:(v)=>fN(v,2), isRate:false},
-    {label:'NS持有算力(P)', key:'nsHold', fmt:(v)=>fN(v,2), isRate:false},
-    {label:'NS有效算力(P)', key:'nsEff', fmt:(v)=>fN(v,2), isRate:false},
+    {label:'管理机器数(台)', key:'machines', fmt:(v)=>fN(v,0), isDelta:false},
+    {label:'管理算力(P)', key:'manageP', fmt:(v)=>fN(v,2), isDelta:false},
+    {label:'NS持有算力(P)', key:'nsHold', fmt:(v)=>fN(v,2), isDelta:false},
+    {label:'NS有效算力(P)', key:'nsEff', fmt:(v)=>fN(v,2), isDelta:false},
     {label:'周算力达成率', key:'rate', fmt:(v)=>v!=null?`<span class="${rateClass(v)}">${fPct(v)}</span>`:'—', isRate:true},
     {label:'剔除异常场地达成率', key:'rateEx', fmt:(v)=>v!=null?`<span class="${rateClass(v)}">${fPct(v)}</span>`:'—', isRate:true},
   ];
@@ -707,7 +822,7 @@ function renderReport(rpt){
       <td>${fmt(CB[key])}</td>`;
     if(hasCmp){
       h+=`<td>${fmt(PT[key])}</td><td>${fmt(PU[key])}</td><td>${fmt(PB[key])}</td>`;
-      h+=`<td>${isRate?deltaRate(CT[key],PT[key]):dAlt(CT[key],PT[key])}</td>`;
+      h+=`<td>${isRate?deltaRate(CT[key],PT[key]):delta(CT[key],PT[key])}</td>`;
     }
     h+=`</tr>`;
   });
@@ -727,13 +842,14 @@ function renderReport(rpt){
       <td>${fmt(CB[key])}</td>`;
     if(hasCmp){
       h+=`<td>${fmt(PT[key])}</td><td>${fmt(PU[key])}</td><td>${fmt(PB[key])}</td>`;
-      h+=`<td>${isRate?deltaRate(CT[key],PT[key]):dAlt(CT[key],PT[key])}</td>`;
+      h+=`<td>${isRate?deltaRate(CT[key],PT[key]):delta(CT[key],PT[key])}</td>`;
     }
     h+=`</tr>`;
   });
 
   h+=`</tbody></table></div></div>`;
 
+  // 分类明细（折叠手风琴）
   h+=`<div class="card"><div class="card-title">分类明细</div>`;
   CATS.forEach(cat=>{
     const CT2=cur[cat].total,CU2=cur[cat].byBase['U本位'],CB2=cur[cat].byBase['币本位'];
@@ -758,6 +874,7 @@ function renderReport(rpt){
               ${hasCmp?'<th>对比达成率</th><th>对比剔除率</th><th>达成率环比</th>':''}
             </tr></thead><tbody>`;
 
+    // 总揽行
     h+=`<tr class="total-row">
       <td>总揽</td><td>—</td>
       <td>${fN(CT2.machines,0)}</td><td>${fN(CT2.nsHold,2)}</td><td>${fN(CT2.nsEff,2)}</td>
@@ -768,6 +885,7 @@ function renderReport(rpt){
       ${hasCmp?`<td class="${rateClass(PT2?.rate||0)}">${fPct(PT2?.rate)}</td><td class="${rateClass(PT2?.rateEx||0)}">${fPct(PT2?.rateEx)}</td><td>${deltaRate(CT2.rate,PT2?.rate)}</td>`:''}
     </tr>`;
 
+    // U本位行
     const PU2=hasCmp?cmp[cat].byBase['U本位']:null;
     h+=`<tr class="sub-row">
       <td>U本位</td><td style="color:var(--text3)">U本位</td>
@@ -779,6 +897,7 @@ function renderReport(rpt){
       ${hasCmp?`<td class="${rateClass(PU2?.rate||0)}">${fPct(PU2?.rate)}</td><td class="${rateClass(PU2?.rateEx||0)}">${fPct(PU2?.rateEx)}</td><td>${deltaRate(CU2.rate,PU2?.rate)}</td>`:''}
     </tr>`;
 
+    // 币本位行
     const PB2=hasCmp?cmp[cat].byBase['币本位']:null;
     h+=`<tr class="sub-row">
       <td>币本位</td><td style="color:var(--text3)">币本位</td>
@@ -795,6 +914,7 @@ function renderReport(rpt){
   h+=`</div>`;
 
   $('reportArea').innerHTML=h;
+  // 更新币价测算面板数据
   if(window._lastRpt){
     const t=window._lastRpt.cur._total.total;
     $('lp_btc').textContent=fN(t.btc,4)+' BTC';
@@ -806,6 +926,7 @@ function renderReport(rpt){
 
 function togAcc(id){const b=$(id),a=$(`${id}-arr`);const o=b.classList.toggle('open');a.classList.toggle('open',o);}
 
+// ── 导出 ──
 function exportExcel(){
   const rpt=window._lastRpt;
   if(!rpt){alert('请先生成周报');return;}
@@ -813,6 +934,7 @@ function exportExcel(){
   const hasCmp=!!cmp;
   const ewb=XLSX.utils.book_new();
 
+  // 总览sheet
   const hdr=['分类','维度','管理机器数','管理算力(P)','NS持有(P)','NS有效(P)','周达成率','剔除异常达成率','产出BTC','USD收入','托管运维费','毛利','电费占比'];
   if(hasCmp) hdr.push('对比周达成率','达成率环比(pp)','USD环比');
   const rows=[['NS周报汇总',`本周:${curFrom}~${curTo}${hasCmp?` 对比:${cmpFrom}~${cmpTo}`:''}`,],[],hdr];
@@ -835,6 +957,7 @@ function exportExcel(){
   XLSX.writeFile(ewb,`NS周报_${curFrom}_${curTo}.xlsx`);
 }
 
+// ── 历史记录 ──
 const HK='ns_weekly_hist_v1';
 function loadH(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch{return[];}}
 function saveHist(rpt){
@@ -874,34 +997,280 @@ function renderHist(){
 }
 function delH(i){const arr=loadH();arr.splice(i,1);localStorage.setItem(HK,JSON.stringify(arr));renderHist();}
 
+// ── 场地明细（从巡查表计算 + 与周报表对比校验）──
+let _siteData = null;
+let siteWb = null;
+
+function onDrag(e,on,zoneId){e.preventDefault();$(zoneId||'dropZone')?.classList.toggle('drag',on);}
+function onSiteDrop(e){e.preventDefault();$('siteDropZone').classList.remove('drag');readSiteFile(e.dataTransfer.files[0]);}
+function onSiteFileChange(e){readSiteFile(e.target.files[0]);}
+
+// 从巡查表+收益表按场地编号计算
+function calcSiteFromIns(insRows, revRows, from, to){
+  const sites={};   // key=场地编号
+  const order=[];
+
+  insRows.forEach(row=>{
+    const date=normDate(String(gRow(row,'登记日期')||''));
+    if(date<from||date>to) return;
+    const code=String(gIdx(row,2)||gRow(row,'场地编号')||'').trim();
+    const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
+    if(!miner||['矿工号','汇总',''].includes(miner)) return;
+    const bn=String(gIdx(row,65)||gRow(row,'分类')||'').trim();
+    if(!code) return;
+
+    if(!sites[code]){
+      // 场地名称：取账户E列\n后部分，或客户名G列
+      const eVal=String(gIdx(row,4)||'');
+      const gVal=String(gIdx(row,6)||gRow(row,'客户名')||'');
+      let siteName=eVal.includes('\n')?eVal.split('\n')[1].trim():(gVal||code);
+      sites[code]={code,siteName,cat:bn,
+        machines:0,theoryP:0,fault:0,faultHasData:false,
+        dailyEff:{},  // date → {h24,theory}
+        dailyFault:{}, // date → {fault,machines}
+        profit:0};
+      order.push(code);
+    }
+    const s=sites[code];
+
+    // 周末快照：机器数、理论算力、故障
+    if(date===to){
+      s.machines+=n(gIdx(row,7)||gRow(row,'持有机器数'))||0;
+      s.theoryP+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
+    }
+    // 周内日有效率：Σ24h算力/Σ理论
+    if(!s.dailyEff[date]) s.dailyEff[date]={h24:0,theory:0};
+    s.dailyEff[date].h24+=n(gIdx(row,8)||gRow(row,'24h平均算力（P）'))||0;
+    s.dailyEff[date].theory+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
+    // 周内日故障占比
+    if(!s.dailyFault[date]) s.dailyFault[date]={fault:0,machines:0};
+    const fStr=String(gIdx(row,12)||gRow(row,'总故障数')||'').trim();
+    if(!['未填写','','None','#DIV/0!'].includes(fStr)){
+      s.dailyFault[date].fault+=n(gIdx(row,12))||0;
+      s.faultHasData=true;
+    }
+    s.dailyFault[date].machines+=n(gIdx(row,7)||gRow(row,'持有机器数'))||0;
+  });
+
+  // 收益毛利（按场地编号，从收益表col2汇总）
+  const profitByCode={};
+  revRows.forEach(row=>{
+    const date=normDate(String(gRow(row,'登记日期')||''));
+    if(date<from||date>to) return;
+    const code=String(gIdx(row,2)||gRow(row,'场地编号')||'').trim();
+    if(!code) return;
+    const p=n(gIdx(row,33)||gRow(row,'最近24小时理论毛利（美元）'));
+    if(p!=null) profitByCode[code]=(profitByCode[code]||0)+p;
+  });
+
+  // 计算最终指标
+  order.forEach(code=>{
+    const s=sites[code];
+    s.profit=profitByCode[code]||0;
+    s.theoryT=s.theoryP*1000;
+    
+    // 有效率：周平均算力 / 理论算力（直接用周期内累计值相除，不扣除故障）
+    let sumH24 = 0;
+    let sumTheory = 0;
+    Object.values(s.dailyEff).forEach(d => {
+      sumH24 += d.h24;
+      sumTheory += d.theory;
+    });
+    s.effAvg = sumTheory > 0 ? (sumH24 / sumTheory) : null;
+    
+    // 故障占比：日故障占比的均值
+    const faults=Object.values(s.dailyFault).filter(d=>d.machines>0).map(d=>d.fault/d.machines);
+    s.faultPct=s.faultHasData&&faults.length?faults.reduce((a,b)=>a+b,0)/faults.length:null;
+  });
+
+  return {sites,order};
+}
+
+function readSiteFile(file){
+  if(!file) return;
+  $('siteStatus').textContent='读取中...';
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      siteWb=XLSX.read(e.target.result,{type:'array',cellDates:false,dateNF:'yyyy-mm-dd'});
+      $('siteFileName').textContent=file.name;
+      $('siteFileInfo').style.display='flex';
+      const sel=$('selSiteSheet');
+      sel.innerHTML='';
+      siteWb.SheetNames.forEach(nm=>{
+        if(nm==='Sheet1') return;
+        const o=document.createElement('option');o.value=o.textContent=nm;sel.appendChild(o);
+      });
+      if(sel.options.length>0){sel.selectedIndex=0;loadSiteSheet();}
+      $('siteStatus').textContent='';
+    }catch(ex){$('siteStatus').textContent='读取失败：'+ex.message;}
+  };
+  r.readAsArrayBuffer(file);
+}
+
+// 读取周报表某周的场地数据（用于对比校验）
+function parseSiteReport(raw){
+  const byName={};  // 场地名称 → 周报值
+  let cat='';
+  for(let i=2;i<raw.length;i++){
+    const row=raw[i];
+    if(!row||!row.some(v=>v!=null)) continue;
+    const seq=row[0];
+    if(seq==null||isNaN(parseFloat(seq))) continue;
+    if(row[1]!=null&&String(row[1]).trim()) cat=String(row[1]).replace(/\n/g,' ').trim();
+    const name=String(row[2]||'').trim();
+    const code=String(row[3]||'').trim();
+    if(!name) continue;
+    const key=code; // 用场地代码做key匹配
+    if(!byName[key]) byName[key]={machines:0,theoryT:0,profit:null,effList:[],faultList:[],names:[]};
+    const r=byName[key];
+    r.names.push(name);
+    r.machines+=parseFloat(row[5])||0;
+    r.theoryT+=parseFloat(row[6])||0;
+    const p=row[7]!=null&&row[7]!=='/'?parseFloat(row[7]):null;
+    if(p!=null) r.profit=(r.profit||0)+p;
+    const eff=row[9]!=null&&row[9]!=='/'?parseFloat(row[9]):null;
+    if(eff!=null) r.effList.push(eff);
+    const fault=row[11]!=null&&row[11]!=='/'?parseFloat(row[11]):null;
+    if(fault!=null) r.faultList.push(fault);
+  }
+  // 汇总
+  Object.values(byName).forEach(r=>{
+    r.effAvg=r.effList.length?r.effList.reduce((a,b)=>a+b,0)/r.effList.length:null;
+    r.faultAvg=r.faultList.length?r.faultList.reduce((a,b)=>a+b,0)/r.faultList.length:null;
+  });
+  return byName;
+}
+
+function loadSiteSheet(){
+  if(!siteWb||!window._lastRpt){
+    $('siteStatus').textContent=window._lastRpt?'':'请先在「周报」页生成报告';
+    return;
+  }
+  const sheetName=$('selSiteSheet').value;
+  const ws=siteWb.Sheets[sheetName];
+  const raw=XLSX.utils.sheet_to_json(ws,{raw:true,defval:null,header:1});
+  const weekTitle=String(raw[0]?.[0]||sheetName);
+  const reportData=parseSiteReport(raw);
+
+  // 从巡查表计算（用周报当前的日期范围）
+  const {curFrom,curTo}=window._lastRpt;
+  const calc=calcSiteFromIns(window._insRows,window._revRows,curFrom,curTo);
+
+  _siteData={calc,reportData,weekTitle,from:curFrom,to:curTo};
+  renderSites();
+}
+
+function renderSites(){
+  if(!_siteData){$('sitesArea').innerHTML='<div class="empty">请先生成周报，并上传场地周报文件</div>';return;}
+  const {calc,reportData,weekTitle}=_siteData;
+  const hideGood=$('sitesHideGood')?.checked;
+  $('sites-week-badge').textContent=weekTitle;
+
+  // 按分类分组
+  const catOrder=[];
+  calc.order.forEach(code=>{
+    const cat=calc.sites[code].cat;
+    if(cat&&!catOrder.includes(cat)) catOrder.push(cat);
+  });
+  const CAT_NAMES={'SAD':'SADG自营','新合资':'新合资（赵总）','老合资':'老合资','其他项':'其他项目','我方代':'我方代托','已经出':'已经出售/争议'};
+
+  const chkBadge=(calc,report,tol,isPct)=>{
+    if(report==null||calc==null) return '<span style="color:var(--text3);font-size:10px">无对照</span>';
+    const diff=isPct?Math.abs(calc-report):Math.abs(calc-report)/(Math.abs(report)||1);
+    const ok=isPct?diff<=tol:diff<=tol;
+    return ok?'<span style="color:var(--green);font-size:10px">✓</span>'
+             :`<span style="color:var(--red);font-size:10px">✗${isPct?(diff*100).toFixed(1)+'pp':(diff*100).toFixed(1)+'%'}</span>`;
+  };
+
+  let h='';
+  catOrder.forEach(cat=>{
+    let codes=calc.order.filter(c=>calc.sites[c].cat===cat);
+    if(hideGood) codes=codes.filter(c=>{
+      const s=calc.sites[c];
+      return (s.effAvg!=null&&s.effAvg<0.85)||(s.faultPct!=null&&s.faultPct>0.1)||(s.profit<0);
+    });
+    if(!codes.length) return;
+
+    h+=`<div class="site-group"><div class="card" style="padding:0;overflow:hidden">
+      <div class="site-group-head">
+        <span class="site-group-name">${CAT_NAMES[cat]||cat}</span>
+        <span class="site-group-count">${codes.length} 个场地</span>
+      </div>
+      <div class="tbl-wrap"><table class="site-table">
+        <thead><tr>
+          <th style="width:28px">#</th>
+          <th style="min-width:180px">场地名称</th>
+          <th>代码</th>
+          <th class="r">总托管数量</th>
+          <th class="r">总算力(T)</th>
+          <th class="r">场地周毛利($)</th>
+          <th style="min-width:120px">周平均算力有效率</th>
+          <th class="r">总故障占比</th>
+          <th style="min-width:70px">校验</th>
+        </tr></thead><tbody>`;
+
+    codes.forEach((code,idx)=>{
+      const s=calc.sites[code];
+      const rpt=reportData[code];
+      const effPct=s.effAvg!=null?s.effAvg*100:null;
+      const effColor=s.effAvg==null?'var(--text3)':s.effAvg>=0.9?'var(--green)':s.effAvg>=0.7?'var(--amber)':'var(--red)';
+      const faultColor=s.faultPct==null?'var(--text3)':s.faultPct>0.1?'var(--red)':s.faultPct>0.03?'var(--amber)':'var(--green)';
+      const pColor=s.profit>=0?'var(--green)':'var(--red)';
+      // 校验：机器数、算力、毛利对比
+      const chkM=rpt?chkBadge(s.machines,rpt.machines,0.01,false):'';
+      const chkT=rpt?chkBadge(s.theoryT,rpt.theoryT,0.01,false):'';
+      const chkP=rpt&&rpt.profit!=null?chkBadge(s.profit,rpt.profit,0.02,false):'';
+
+      h+=`<tr>
+        <td style="color:var(--text3)">${idx+1}</td>
+        <td style="font-weight:500">${rpt&&rpt.names[0]?rpt.names[0]:s.siteName}</td>
+        <td style="color:var(--text2);font-size:11px">${code}</td>
+        <td class="r">${s.machines>0?s.machines.toLocaleString():'—'} ${chkM}</td>
+        <td class="r">${s.theoryT>0?Math.round(s.theoryT).toLocaleString():'—'} ${chkT}</td>
+        <td class="r" style="color:${pColor};font-weight:500">${s.profit!==0?'$'+fN(s.profit,0):'—'} ${chkP}</td>
+        <td>${effPct!=null?`<div class="eff-bar-wrap">
+          <div class="eff-bar"><div class="eff-bar-fill" style="width:${Math.min(effPct,100).toFixed(1)}%;background:${effColor}"></div></div>
+          <span style="font-size:11px;color:${effColor};min-width:40px">${effPct.toFixed(2)}%</span>
+        </div>${rpt&&rpt.effAvg!=null?`<span style="font-size:9px;color:var(--text3)">报:${(rpt.effAvg*100).toFixed(1)}%</span>`:''}`:'<span style="color:var(--text3)">—</span>'}</td>
+        <td class="r" style="color:${faultColor}">${s.faultPct!=null?(s.faultPct*100).toFixed(2)+'%':'—'}</td>
+        <td>${(chkM+chkT+chkP).includes('✗')?'<span class="badge err">有差异</span>':rpt?'<span class="badge ok">通过</span>':'<span style="color:var(--text3);font-size:10px">—</span>'}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div></div></div>`;
+  });
+
+  $('sitesArea').innerHTML=h||'<div class="empty">暂无场地数据</div>';
+}
+
 function showPage(name,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   $(`page-${name}`).classList.add('active');
   if(el)el.classList.add('active');
-  if(name==='history')renderHist();
+  if(name==='history') renderHist();
+  if(name==='sites'){ if(siteWb&&window._lastRpt) loadSiteSheet(); else if(_siteData) renderSites(); }
 }
-
-// ── 已经优化：利用 allorigins 解决前端本地环境下的跨域 CORS 问题 ──
 async function fetchBTCPrice(){
   const btn=$('btnFetchPrice');
   btn.textContent='获取中...';btn.disabled=true;
   $('priceSource').textContent='正在获取...';
-  
+  // 多个数据源依次尝试（都支持 CORS）
   const sources=[
-    {name:'Coinbase',url:'https://api.allorigins.win/raw?url=https://api.coinbase.com/v2/prices/BTC-USD/spot',
+    {name:'Coinbase',url:'https://api.coinbase.com/v2/prices/BTC-USD/spot',
      parse:d=>parseFloat(d?.data?.amount)},
-    {name:'Binance',url:'https://api.allorigins.win/raw?url=https://api.binance.com/api/v3/ticker/price%3Fsymbol%3DBTCUSDT',
+    {name:'Binance',url:'https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT',
      parse:d=>parseFloat(d?.price)},
-    {name:'Kraken',url:'https://api.allorigins.win/raw?url=https://api.kraken.com/0/public/Ticker%3Fpair%3DXBTUSD',
+    {name:'CoinGecko',url:'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd',
+     parse:d=>d?.bitcoin?.usd},
+    {name:'Kraken',url:'https://api.kraken.com/0/public/Ticker?pair=XBTUSD',
      parse:d=>parseFloat(d?.result?.XXBTZUSD?.c?.[0])},
   ];
-  
   let ok=false;
   for(const src of sources){
     try{
       const ctrl=new AbortController();
-      const tid=setTimeout(()=>ctrl.abort(),7000); // 宽延至 7 秒超时
+      const tid=setTimeout(()=>ctrl.abort(),6000);
       const res=await fetch(src.url,{signal:ctrl.signal});
       clearTimeout(tid);
       if(!res.ok) continue;
@@ -909,19 +1278,18 @@ async function fetchBTCPrice(){
       const price=src.parse(data);
       if(price&&price>0){
         $('livePrice').value=Math.round(price);
-        $('priceSource').textContent='来源: '+src.name+'(经过代理) · '+new Date().toLocaleTimeString('zh-CN');
+        $('priceSource').textContent='来源: '+src.name+' · '+new Date().toLocaleTimeString('zh-CN');
         calcLiveProfit();
         ok=true;
         break;
       }
-    }catch(e){ /* 出错则自动轮询下一个交易所源 */ }
+    }catch(e){ /* 尝试下一个源 */ }
   }
   if(!ok){
-    $('priceSource').innerHTML='<span style="color:var(--red)">自动抓取失败，可能是当前网络请求被拦截，请手动输入价格</span>';
+    $('priceSource').innerHTML='<span style="color:var(--red)">自动获取失败（可能是网络/CORS限制），请手动输入价格</span>';
   }
   btn.textContent='⟳ 获取实时价';btn.disabled=false;
 }
-
 function calcLiveProfit(){
   if(!window._lastRpt) return;
   const price=parseFloat($('livePrice').value)||0;
