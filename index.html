@@ -156,9 +156,10 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   </div>
 </div>
 
+<!-- 周报页 -->
 <div id="page-report" class="page active">
   <div class="card">
-    <div class="card-title">1. 上传周报基础文件</div>
+    <div class="card-title">上传文件 & 参数配置</div>
     <div class="upload-zone" id="dropZone" ondragover="onDrag(event,true,'dropZone')" ondragleave="onDrag(event,false,'dropZone')" ondrop="onDrop(event)">
       <input type="file" accept=".xlsx,.xls" onchange="onFileChange(event)">
       <div style="font-size:22px;margin-bottom:5px">📊</div>
@@ -171,25 +172,15 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <span id="sheetInfo" style="font-size:11px;color:var(--text2)"></span>
     </div>
 
-    <div class="upload-zone" id="mapDropZone" ondragover="onDrag(event,true,'mapDropZone')" ondragleave="onDrag(event,false,'mapDropZone')" ondrop="onMapDrop(event)" style="margin-top:12px; padding:14px 20px">
-      <input type="file" accept=".xlsx,.xls,.csv" onchange="onMapFileChange(event)">
-      <div style="font-size:16px;margin-bottom:3px">🔗</div>
-      <div class="upload-title" style="font-size:13px">上传《自营算力托管场地明细表》 (可选，强烈建议)</div>
-      <div class="upload-sub">自动提取 A列(分类) 及 观察者链接(主/备)，精准合并场地数据</div>
-    </div>
-    <div id="mapFileInfo" style="display:none; margin-top:8px" class="file-ok">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3b6d11" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <span class="file-name" id="mapFileName"></span>
-      <span id="mapSheetInfo" style="font-size:11px;color:var(--text2)"></span>
-    </div>
-
     <div class="divider"></div>
 
+    <!-- Sheet 选择 -->
     <div class="grid2" style="margin-bottom:12px">
       <div><label class="lbl">巡查表同步 Sheet</label><select id="selIns"></select></div>
       <div><label class="lbl">收益表同步 Sheet</label><select id="selRev"></select></div>
     </div>
 
+    <!-- 日期选择 -->
     <div class="grid2" style="gap:10px;margin-bottom:12px">
       <div class="date-group">
         <div class="date-group-title"><span class="date-dot dot-blue"></span>本周</div>
@@ -200,13 +191,51 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       </div>
       <div class="date-group">
         <div class="date-group-title"><span class="date-dot dot-gray"></span>对比周（可选）</div>
-        <div class="grid2">
+        <div class="grid2" style="margin-bottom:8px">
           <div><label class="lbl">开始日期</label><input type="date" id="cmpFrom"><div class="hint">留空不显示对比</div></div>
           <div><label class="lbl">结束日期</label><input type="date" id="cmpTo"></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer;user-select:none">
+          <input type="checkbox" id="cmpOcDiff" onchange="toggleCmpOc()">
+          对比周超频值与本周不同（默认相同）
+        </label>
+        <div id="cmpOcArea" style="display:none;margin-top:8px;background:var(--bg3);border-radius:var(--r);padding:10px;border:.5px solid var(--border)">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:6px">对比周超频附加算力（P）</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr>
+              <th style="padding:4px 8px;text-align:left;background:var(--bg2);border:.5px solid var(--border);font-weight:500;color:var(--text2)">分类</th>
+              <th style="padding:4px 8px;text-align:center;background:var(--bg2);border:.5px solid var(--border);font-weight:500;color:var(--text2)">币本位(P)</th>
+              <th style="padding:4px 8px;text-align:center;background:var(--bg2);border:.5px solid var(--border);font-weight:500;color:var(--text2)">U本位(P)</th>
+              <th style="padding:4px 8px;text-align:center;background:var(--bg2);border:.5px solid var(--border);font-weight:500;color:var(--text3);font-size:10px">小计</th>
+            </tr></thead>
+            <tbody>
+              <tr><td style="padding:3px 8px;border:.5px solid var(--border);color:var(--text2)">SADG自营</td>
+                <td style="padding:2px 6px;border:.5px solid var(--border)"><input type="number" id="coc_sad_coin" value="0" step="0.01" min="0" style="width:100%" oninput="updateCmpOcTotals()"></td>
+                <td style="padding:2px 6px;border:.5px solid var(--border)"><input type="number" id="coc_sad_u" value="0" step="0.01" min="0" style="width:100%" oninput="updateCmpOcTotals()"></td>
+                <td style="padding:3px 8px;border:.5px solid var(--border);text-align:center;color:var(--text2)" id="coc_sad_sub">0</td></tr>
+              <tr><td style="padding:3px 8px;border:.5px solid var(--border);color:var(--text2)">新合资</td>
+                <td style="padding:2px 6px;border:.5px solid var(--border)"><input type="number" id="coc_new_coin" value="0" step="0.01" min="0" style="width:100%" oninput="updateCmpOcTotals()"></td>
+                <td style="padding:2px 6px;border:.5px solid var(--border)"><input type="number" id="coc_new_u" value="0" step="0.01" min="0" style="width:100%" oninput="updateCmpOcTotals()"></td>
+                <td style="padding:3px 8px;border:.5px solid var(--border);text-align:center;color:var(--text2)" id="coc_new_sub">0</td></tr>
+              <tr><td style="padding:3px 8px;border:.5px solid var(--border);color:var(--text2)">老合资</td>
+                <td style="padding:2px 6px;border:.5px solid var(--border)"><input type="number" id="coc_old_coin" value="0" step="0.01" min="0" style="width:100%" oninput="updateCmpOcTotals()"></td>
+                <td style="padding:2px 6px;border:.5px solid var(--border)"><input type="number" id="coc_old_u" value="0" step="0.01" min="0" style="width:100%" oninput="updateCmpOcTotals()"></td>
+                <td style="padding:3px 8px;border:.5px solid var(--border);text-align:center;color:var(--text2)" id="coc_old_sub">0</td></tr>
+              <tr><td style="padding:3px 8px;border:.5px solid var(--border);color:var(--text2)">其他项</td>
+                <td style="padding:2px 6px;border:.5px solid var(--border)"><input type="number" id="coc_other_coin" value="0" step="0.01" min="0" style="width:100%" oninput="updateCmpOcTotals()"></td>
+                <td style="padding:2px 6px;border:.5px solid var(--border)"><input type="number" id="coc_other_u" value="0" step="0.01" min="0" style="width:100%" oninput="updateCmpOcTotals()"></td>
+                <td style="padding:3px 8px;border:.5px solid var(--border);text-align:center;color:var(--text2)" id="coc_other_sub">0</td></tr>
+              <tr><td style="padding:3px 8px;border:.5px solid var(--border);color:var(--text2)">我方代托</td>
+                <td style="padding:2px 6px;border:.5px solid var(--border)"><input type="number" id="coc_proxy_coin" value="0" step="0.01" min="0" style="width:100%" oninput="updateCmpOcTotals()"></td>
+                <td style="padding:2px 6px;border:.5px solid var(--border)"><input type="number" id="coc_proxy_u" value="0" step="0.01" min="0" style="width:100%" oninput="updateCmpOcTotals()"></td>
+                <td style="padding:3px 8px;border:.5px solid var(--border);text-align:center;color:var(--text2)" id="coc_proxy_sub">0</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
 
+    <!-- 超频参数 -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div>
         <span style="font-size:12px;font-weight:500">超频附加算力（P）</span>
@@ -307,9 +336,10 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <div id="reportArea"></div>
 </div>
 
+<!-- 场地明细页 -->
 <div id="page-sites" class="page">
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:14px;font-weight:500">场地明细</span>
         <span id="sites-week-badge" style="font-size:12px;color:var(--blue);background:var(--blue-bg);border-radius:4px;padding:2px 8px"></span>
@@ -318,29 +348,46 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <input type="checkbox" id="sitesHideGood" onchange="renderSites()"> 仅显示有问题场地
       </label>
     </div>
-    <div class="upload-zone" id="siteDropZone" style="padding:16px 20px"
-      ondragover="onDrag(event,true,'siteDropZone')" ondragleave="onDrag(event,false,'siteDropZone')" ondrop="onSiteDrop(event)">
-      <input type="file" accept=".xlsx,.xls" onchange="onSiteFileChange(event)">
-      <div style="font-size:13px;font-weight:500;margin-bottom:2px">上传场地周报 xlsx（用于对照校验，可选）</div>
-      <div style="font-size:11px;color:var(--text3)">按「场地名称」自动合并同名场地，上传周报表后可对比校验</div>
-    </div>
-    <div id="siteFileInfo" style="display:none;margin-top:8px" class="file-ok">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3b6d11" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <span class="file-name" id="siteFileName"></span>
-    </div>
-    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1;min-width:160px">
-        <label class="lbl">选择周 Sheet</label>
-        <select id="selSiteSheet" onchange="loadSiteSheet()"></select>
+    <div class="grid2" style="gap:10px">
+      <!-- 场地明细表 -->
+      <div>
+        <div class="lbl" style="margin-bottom:4px">① 场地明细表（必须）</div>
+        <div class="upload-zone" id="siteDropZone" style="padding:12px 16px"
+          ondragover="onDrag(event,true,'siteDropZone')" ondragleave="onDrag(event,false,'siteDropZone')" ondrop="onSiteDrop(event)">
+          <input type="file" accept=".xlsx,.xls" onchange="onSiteFileChange(event)">
+          <div style="font-size:12px;font-weight:500;margin-bottom:2px">自营算力托管场地明细表.xlsx</div>
+          <div style="font-size:11px;color:var(--text3)">读取「SADG观察者链接」Sheet，建立场地→子账户映射</div>
+        </div>
+        <div id="siteFileInfo" style="display:none;margin-top:6px" class="file-ok">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3b6d11" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="file-name" id="siteFileName"></span>
+        </div>
+        <div style="margin-top:4px"><span class="status" id="siteStatus"></span></div>
       </div>
-      <div style="padding-top:18px">
-        <span class="status" id="siteStatus"></span>
+      <!-- 周报对比表（可选） -->
+      <div>
+        <div class="lbl" style="margin-bottom:4px">② 场地周报表（可选，用于对比）</div>
+        <div class="upload-zone" id="siteRptDropZone" style="padding:12px 16px"
+          ondragover="onDrag(event,true,'siteRptDropZone')" ondragleave="onDrag(event,false,'siteRptDropZone')" ondrop="onSiteRptDrop(event)">
+          <input type="file" accept=".xlsx,.xls" onchange="onSiteRptFileChange(event)">
+          <div style="font-size:12px;font-weight:500;margin-bottom:2px">SADG自营所有场地周报.xlsx</div>
+          <div style="font-size:11px;color:var(--text3)">上传后选择对应周，可对比机器数/算力/有效率</div>
+        </div>
+        <div id="siteRptFileInfo" style="display:none;margin-top:6px" class="file-ok">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3b6d11" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="file-name" id="siteRptFileName"></span>
+        </div>
+        <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+          <select id="selRptSheet" onchange="loadRptSheet()" style="flex:1;font-size:12px;padding:5px 8px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg)"></select>
+          <span class="status" id="siteRptStatus"></span>
+        </div>
       </div>
     </div>
   </div>
   <div id="sitesArea"><div class="empty">请先在「周报」页生成报告（场地数据从巡查表计算）<br>可选：上传场地周报表进行对照校验</div></div>
 </div>
 
+<!-- 历史页 -->
 <div id="page-history" class="page">
   <div class="card">
     <div class="card-title">历史周报记录 <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">· 本地浏览器 · 最多20条</span></div>
@@ -348,36 +395,46 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   </div>
 </div>
 
+<!-- 规则页 -->
 <div id="page-rules" class="page">
   <div class="card">
-    <div class="sec-head" style="margin-bottom:10px">算力指标（巡查表同步）</div>
-    <div class="rule-item"><span class="rule-id">M1</span><div><div class="rule-name">管理机器数（台）</div><div class="rule-desc">SUMIFS(H列持有机器数, 日期=周末, BN列=分类)，总揽不过滤采购分类，U本位/币本位列额外过滤BJ列</div></div></div>
-    <div class="rule-item"><span class="rule-id">M2</span><div><div class="rule-name">管理算力（P）</div><div class="rule-desc">SUMIFS(K列理论总算力, 日期=周末, BN列=分类)，同上</div></div></div>
-    <div class="rule-item"><span class="rule-id">M3</span><div><div class="rule-name">NS持有算力（P）</div><div class="rule-desc">SUMIFS(BA列ns算力, 日期=周末, BN列=分类)，取周末最后一天快照</div></div></div>
-    <div class="rule-item"><span class="rule-id">M4</span><div><div class="rule-name">NS有效算力（P）</div><div class="rule-desc">SUMIFS(BM列ns实际算力, 日期∈周内, BN=分类, BJ∈[U本位/币本位], BK≠需剔除场地) ÷ 7，取周内7天平均</div></div></div>
-    <div class="rule-item"><span class="rule-id">M5</span><div><div class="rule-name">周算力达成率</div><div class="rule-desc">NS有效算力 ÷ (NS持有算力 + 超频附加值)，超频附加值按分类单独维护</div></div></div>
-    <div class="rule-item"><span class="rule-id">M6</span><div><div class="rule-name">剔除异常场地达成率</div><div class="rule-desc">NS有效算力 ÷ (SUMIFS(BL列ns持有去故障, 日期=周末, BK=正常) + 超频附加值)</div></div></div>
+    <div class="sec-head" style="margin-bottom:10px">周报 · 算力指标（巡查表同步）</div>
+    <div class="rule-item"><span class="rule-id">M1</span><div><div class="rule-name">管理机器数（台）</div><div class="rule-desc">SUMIFS(H列持有机器数, 日期=周末, BN列=分类)。总揽不过滤采购分类（含客户机器/电力矿场），U本位/币本位列额外过滤BJ列。取周末最后一天快照。</div></div></div>
+    <div class="rule-item"><span class="rule-id">M2</span><div><div class="rule-name">管理算力（P）</div><div class="rule-desc">SUMIFS(K列理论总算力, 日期=周末, BN列=分类)，逻辑同M1。理论总算力为机器全量算力，不扣除故障台数。</div></div></div>
+    <div class="rule-item"><span class="rule-id">M3</span><div><div class="rule-name">NS持有算力（P）</div><div class="rule-desc">SUMIFS(BA列ns算力, 日期=周末, BN=分类, BJ∈[U本位/币本位])，取周末快照。不含客户机器/电力矿场。</div></div></div>
+    <div class="rule-item"><span class="rule-id">M4</span><div><div class="rule-name">NS有效算力（P）</div><div class="rule-desc">SUMIFS(BM列ns实际算力, 日期∈周内, BN=分类, BJ∈[U本位/币本位], BK≠需剔除场地) ÷ 7。周内7天日平均，BK列「需剔除场地」的行不计入。</div></div></div>
+    <div class="rule-item"><span class="rule-id">M5</span><div><div class="rule-name">周算力达成率</div><div class="rule-desc">NS有效算力 ÷ (NS持有算力 + 超频附加值)。超频附加值按分类×本位填写，达成率 ≥90% 绿，≥70% 橙，低于70% 红。</div></div></div>
+    <div class="rule-item"><span class="rule-id">M6</span><div><div class="rule-name">剔除异常场地达成率</div><div class="rule-desc">NS有效算力 ÷ (SUMIFS(BL列ns持有去故障, 日期=周末, BK=正常) + 超频附加值)。分母只累加BK列为「正常」的行。</div></div></div>
+    <div class="rule-item"><span class="rule-id">M7</span><div><div class="rule-name">我方代托 达成率（特殊）</div><div class="rule-desc">不使用NS列，改用：周内日均I列(24h平均算力/1000) ÷ 周内日均X列(架上理论算力/1000)。客户机器无NS数据，故用巡查表实测算力代替。</div></div></div>
   </div>
   <div class="card">
-    <div class="sec-head" style="margin-bottom:10px">收益指标（收益表同步）</div>
-    <div class="rule-item"><span class="rule-id">R1</span><div><div class="rule-name">产出BTC（枚）</div><div class="rule-desc">SUMIFS(AC列预估BTC收入, 日期∈周内, 矿工号分类=BN分类, 采购分类=本位)，按矿工号从巡查表映射分类</div></div></div>
-    <div class="rule-item"><span class="rule-id">R2</span><div><div class="rule-name">USD收入（$）</div><div class="rule-desc">SUMIFS(AF列btc价值USD, 日期∈周内, 分类, 本位)</div></div></div>
-    <div class="rule-item"><span class="rule-id">R3</span><div><div class="rule-name">托管运维费（$）</div><div class="rule-desc">USD收入 − 毛利（表格没有直接的成本列，成本已计入毛利计算）</div></div></div>
-    <div class="rule-item"><span class="rule-id">R4</span><div><div class="rule-name">毛利（$）</div><div class="rule-desc">SUMIFS(AH列理论毛利, 日期∈周内, 分类, 本位)</div></div></div>
-    <div class="rule-item"><span class="rule-id">R5</span><div><div class="rule-name">电费占比</div><div class="rule-desc">托管运维费 ÷ USD收入</div></div></div>
+    <div class="sec-head" style="margin-bottom:10px">周报 · 收益指标（收益表同步）</div>
+    <div class="rule-item"><span class="rule-id">R1</span><div><div class="rule-name">产出BTC（枚）</div><div class="rule-desc">SUMIFS(AC列预估BTC收入, 日期∈周内, 矿工号BN=分类, 矿工号BJ=本位)。分类和本位通过矿工号从巡查表同步BN/BJ列映射，不依赖收益表AT/AS列（可能存在分类缺失，如AMIDN子账户）。</div></div></div>
+    <div class="rule-item"><span class="rule-id">R2</span><div><div class="rule-name">USD收入（$）</div><div class="rule-desc">SUMIFS(AF列最近24h BTC价值USD, 日期∈周内, 分类, 本位)，周内累计。</div></div></div>
+    <div class="rule-item"><span class="rule-id">R3</span><div><div class="rule-name">托管运维费（$）</div><div class="rule-desc">= USD收入 − 毛利。收益表中无独立成本列，成本已隐含在毛利公式中，反推得出。</div></div></div>
+    <div class="rule-item"><span class="rule-id">R4</span><div><div class="rule-name">毛利（$）</div><div class="rule-desc">SUMIFS(AH列理论毛利, 日期∈周内, 分类, 本位)，周内累计。各利润模式的毛利计算逻辑见每日巡查校验工具R13规则。</div></div></div>
+    <div class="rule-item"><span class="rule-id">R5</span><div><div class="rule-name">电费占比</div><div class="rule-desc">= 托管运维费 ÷ USD收入，反映电费及运维成本在总收入中的比重。</div></div></div>
   </div>
   <div class="card">
-    <div class="sec-head" style="margin-bottom:8px">数据说明</div>
-    <div style="font-size:12px;color:var(--text2);line-height:2.1">
+    <div class="sec-head" style="margin-bottom:10px">场地明细 · 计算规则</div>
+    <div class="rule-item"><span class="rule-id">S1</span><div><div class="rule-name">场地分类来源</div><div class="rule-desc">从「自营算力托管场地明细表」的「SADG观察者链接」Sheet读取。按类别和场地名称分组，每个场地含一个或多个子账户（矿工号）。矿场管理类子账户与其他分类重叠，数据同时计入多个分类进行加总。</div></div></div>
+    <div class="rule-item"><span class="rule-id">S2</span><div><div class="rule-name">托管数量 / 总算力</div><div class="rule-desc">按场地所有子账户，SUMIFS(H列持有机器数 / K列理论总算力, 日期=周末)。取周期最后一天快照，总算力(T) = 理论总算力(P) × 1000，不扣故障台数。</div></div></div>
+    <div class="rule-item"><span class="rule-id">S3</span><div><div class="rule-name">周平均算力有效率</div><div class="rule-desc">= 周内日均24h算力(I列) ÷ 期间最后一天理论总算力(K列，不扣故障)。日均 = 7天24h算力之和 ÷ 7，含零值天（停电/维护等），零值天会标注提示但不排除。分母取周末最后一天快照值。</div></div></div>
+    <div class="rule-item"><span class="rule-id">S4</span><div><div class="rule-name">场地周毛利</div><div class="rule-desc">按场地所有子账户，SUMIFS(AH列理论毛利, 日期∈周内)，周内累计，数据来自收益表同步。</div></div></div>
+  </div>
+  <div class="card">
+    <div class="sec-head" style="margin-bottom:8px">数据说明 &amp; 注意事项</div>
+    <div style="font-size:12px;color:var(--text2);line-height:2.2">
       <b>分类（BN列）</b>：SAD / 新合资 / 老合资 / 其他项 / 我方代 / NS / 已经出<br>
-      <b>本位（BJ列）</b>：U本位 / 币本位 / 客户机器 / 电力矿场，后两者只计入总揽不拆分<br>
-      <b>超频附加算力</b>：人工调整值，加在NS持有算力上作为达成率分母，按分类单独维护，自动保存到本地<br>
-      <b>对比周</b>：从同一份文件中按对比日期范围重新计算，可选择任意两周对比<br>
-      <b>环比变化</b>：(本周 − 对比周) ÷ |对比周|，绿色为正向，红色为负向
+      <b>本位（BJ列）</b>：U本位 / 币本位 / 客户机器 / 电力矿场；后两者只计入总揽不拆分本位<br>
+      <b>日期读取</b>：xlsx.js 以 UTC 时间解析日期，工具统一用 getUTCDate() 转换，避免时区偏移导致日期错位一天<br>
+      <b>重名列处理</b>：巡查表含多个重名列（如「ns持有算力」），工具用 header:1 模式按列索引读取，保留首次出现的列<br>
+      <b>超频附加算力</b>：按分类×本位填写，总揽自动加总，自动保存到浏览器本地<br>
+      <b>对比周</b>：从同一文件中按对比日期范围重新计算；数量类环比用百分比，达成率类用 pp（百分点）<br>
+      <b>零值天标注</b>：场地有效率若某天24h算力为0（停电/维护），标注「含X天零值」，数值仍含0值计算<br>
+      <b>AMIDN子账户收益</b>：收益表AT列分类可能缺失，工具通过巡查表BN列映射确保正确归类，比直接SUMIFS收益表更准确
     </div>
   </div>
-</div>
-
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -389,6 +446,7 @@ function n(v){
   return isNaN(f)?null:f;
 }
 
+// 安全读取行字段：支持换行符/空格/无分隔三种key变体
 function gRow(row,key){
   if(row[key]!=null&&row[key]!=='') return row[key];
   const k2=key.replace(/\n/g,' ').trim();
@@ -397,7 +455,7 @@ function gRow(row,key){
   if(row[k3]!=null&&row[k3]!=='') return row[k3];
   return '';
 }
-
+// 按列索引直接读取（解决重名列被覆盖问题）
 function gIdx(row,idx){return row['__idx_'+idx]??'';}
 function fN(v,d=2){return v!=null?Number(v).toFixed(d):'—';}
 function fPct(v){return v!=null?`${(Number(v)*100).toFixed(2)}%`:'—';}
@@ -406,15 +464,20 @@ function profitColor(v){return (v||0)>=0?'var(--green)':'var(--red)';}
 function rateClass(r){return r>=0.9?'rate-high':r>=0.7?'rate-mid':'rate-low';}
 function normDate(s){
   if(s==null||s==='') return '';
+  // Excel 序列号（纯数字，通常 4万多）转日期
   if(typeof s==='number'||(/^\d+(\.\d+)?$/.test(String(s).trim())&&parseFloat(s)>40000&&parseFloat(s)<60000)){
     const serial=parseFloat(s);
+    // Excel 日期起点 1899-12-30
     const d=new Date(Date.UTC(1899,11,30)+serial*86400000);
     const y=d.getUTCFullYear(),m=String(d.getUTCMonth()+1).padStart(2,'0'),day=String(d.getUTCDate()).padStart(2,'0');
     return `${y}-${m}-${day}`;
   }
+  // ISO 格式或带时间的字符串
   const str=String(s).trim();
+  // 提取 yyyy-mm-dd 或 yyyy/mm/dd
   const m=str.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
   if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  // 兜底：原逻辑
   const p=str.replace(/\//g,'-').replace(/\s.*/,'').trim().split('-');
   if(p.length<3) return str.slice(0,10);
   return `${p[0]}-${p[1].padStart(2,'0')}-${p[2].padStart(2,'0')}`;
@@ -434,158 +497,7 @@ function deltaRate(cur,cmp){
   return `<span class="${cls}">${sign}${(d*100).toFixed(2)}pp</span>`;
 }
 
-// =======================
-// 新增：映射表读取与应用 (顶层驱动设计)
-// =======================
-let _siteMapping = []; // Array of { name, cat, links: [] }
-
-// 去除 URL 前缀和无关字符，用于做精确/模糊包含匹配
-function normStr(str) {
-    if (!str) return '';
-    return String(str).toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '').trim();
-}
-
-function onMapDrop(e){e.preventDefault();$('mapDropZone').classList.remove('drag');readMapFile(e.dataTransfer.files[0]);}
-function onMapFileChange(e){
-    readMapFile(e.target.files[0]);
-    e.target.value = ''; 
-}
-
-function readMapFile(file){
-  if(!file) return;
-  $('mapFileName').textContent='读取中...';
-  $('mapFileInfo').style.display='flex';
-  setSt('解析映射表中，请稍候...');
-  
-  const r=new FileReader();
-  r.onload=e=>{
-    setTimeout(() => {
-        try{
-          let mapWb=XLSX.read(e.target.result,{type:'array'});
-          $('mapFileName').textContent=file.name;
-
-          let targetSheet = mapWb.SheetNames.find(n=>n.includes('SADG观察者链接')||n.includes('观察者'));
-          if(!targetSheet) targetSheet = mapWb.SheetNames[0];
-
-          const sheet = mapWb.Sheets[targetSheet];
-          const raw = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
-
-          _siteMapping = [];
-          if(raw && raw.length > 0) {
-             let catIdx=0, nameIdx=1, mainIdx=2, subIdx=3; // 默认A, B, C, D列
-             // 寻找表头
-             for(let i=0; i<Math.min(10, raw.length); i++) {
-                 if(!raw[i]) continue;
-                 const hr = raw[i].map(String);
-                 let foundHeader = false;
-                 hr.forEach((h, idx)=>{
-                     if(h.includes('类别')||h.includes('分类')) { catIdx=idx; foundHeader=true; }
-                     if(h.includes('场地名称')||h.includes('场地')) nameIdx=idx;
-                     if(h.includes('主')||(h.includes('链接')&&!h.includes('备'))) mainIdx=idx;
-                     if(h.includes('备')) subIdx=idx;
-                 });
-                 if(foundHeader) break; 
-             }
-
-             // 解析数据并处理合并单元格产生的空白分类 (继承上一行的A列)
-             let lastCat = '';
-             raw.forEach((row, rowIndex) => {
-                 if(!row || rowIndex === 0) return; // 假设第一行是表头
-                 
-                 let currentCat = row[catIdx] ? String(row[catIdx]).trim() : ''; 
-                 if (currentCat) {
-                     lastCat = currentCat;
-                 } else {
-                     currentCat = lastCat; // 向下继承分类
-                 }
-
-                 let name = row[nameIdx] ? String(row[nameIdx]).trim() : '';
-                 let mainLink = row[mainIdx] ? String(row[mainIdx]).trim() : '';
-                 let subLink = row[subIdx] ? String(row[subIdx]).trim() : '';
-
-                 let links = [];
-                 if(mainLink) links.push(normStr(mainLink));
-                 if(subLink) links.push(normStr(subLink));
-                 
-                 // 必须有场地名称，并且至少有一个抓手(链接)
-                 if (name && links.length > 0) {
-                     _siteMapping.push({ cat: currentCat, name: name, links: links });
-                 }
-             });
-          }
-
-          const count = _siteMapping.length;
-          if (count === 0) {
-              $('mapSheetInfo').innerHTML = `<span style="color:var(--red)">未识别到数据，请检查表格格式</span>`;
-          } else {
-              $('mapSheetInfo').textContent=`已成功构建 ${count} 个场地名称映射规则`;
-          }
-          setSt('映射表读取完成，请上传周报数据或点击生成周报');
-        }catch(ex){
-          $('mapFileName').textContent='读取失败';
-          setSt('映射表失败: '+ex.message);
-          console.error(ex);
-        }
-    }, 50);
-  };
-  r.readAsArrayBuffer(file);
-}
-
-// 核心方法：提取场地信息（通过主/备链接模糊包含匹配，把数据收编到对应的场地名称下）
-function getSiteInfo(row) {
-  let code = String(gIdx(row, 2) || gRow(row, '场地编号') || '').trim();
-  let rawCat = String(gIdx(row, 65) || gRow(row, '分类') || '').trim();
-  let eVal = String(gIdx(row, 4) || '');
-  let gVal = String(gIdx(row, 6) || gRow(row, '客户名') || '');
-
-  let siteName = '';
-  let cat = '';
-  let matched = false;
-
-  // 提取有可能包含链接的列内容进行校验
-  let nCode = normStr(code);
-  let nEVal = normStr(eVal.replace(/\n/g, ' '));
-  let nGVal = normStr(gVal);
-
-  // 1. 全局遍历映射表，只要巡查表里包含 mapping里的链接（主或备），就算匹配成功
-  for (let site of _siteMapping) {
-      for (let link of site.links) {
-          if (link.length < 3) continue; // 防误判短字符
-          // 交叉包含匹配
-          if (
-              (nCode && (nCode.includes(link) || link.includes(nCode))) ||
-              (nEVal && (nEVal.includes(link) || link.includes(nEVal))) ||
-              (nGVal && (nGVal.includes(link) || link.includes(nGVal)))
-          ) {
-              siteName = site.name;
-              cat = site.cat;
-              matched = true;
-              break;
-          }
-      }
-      if (matched) break;
-  }
-
-  // 2. 如果彻底没在映射表里找到抓手，使用常规兜底逻辑
-  if (!matched) {
-      siteName = eVal.includes('\n') ? eVal.split('\n')[1].trim() : (gVal || code);
-      cat = rawCat;
-
-      if (code === 'ND1' || siteName === 'ND1') { siteName = 'ECND01'; }
-      if (code === 'ND2' || siteName === 'ND2') { siteName = 'TTHND01'; }
-
-      const kws = ['SAD', '新合资', '老合资', '我方代', '已经出'];
-      for (let kw of kws) {
-          if (gVal.includes(kw) || siteName.includes(kw)) {
-              cat = kw;
-              break;
-          }
-      }
-  }
-
-  return { code, siteName, cat: cat || '其他项', gVal };
-}
-
+// ── 超频参数 ──
 const OC_KEY='ns_weekly_oc_v3';
 const OC_IDS=[
   ['oc_sad_coin','oc_sad_u'],['oc_new_coin','oc_new_u'],
@@ -623,6 +535,51 @@ function initOC(){
   });
   updateOCTotals();
 }
+function toggleCmpOc(){
+  const on=$('cmpOcDiff').checked;
+  $('cmpOcArea').style.display=on?'block':'none';
+  if(on) syncCmpOcFromCur(); // 打开时默认复制本周值
+}
+function syncCmpOcFromCur(){
+  // 把本周超频值复制到对比周
+  const pairs=[['oc_sad_coin','coc_sad_coin'],['oc_sad_u','coc_sad_u'],
+    ['oc_new_coin','coc_new_coin'],['oc_new_u','coc_new_u'],
+    ['oc_old_coin','coc_old_coin'],['oc_old_u','coc_old_u'],
+    ['oc_other_coin','coc_other_coin'],['oc_other_u','coc_other_u'],
+    ['oc_proxy_coin','coc_proxy_coin'],['oc_proxy_u','coc_proxy_u']];
+  pairs.forEach(([src,dst])=>{ if($(src)&&$(dst)) $(dst).value=$(src).value; });
+  updateCmpOcTotals();
+}
+function updateCmpOcTotals(){
+  const subs=[['coc_sad_coin','coc_sad_u','coc_sad_sub'],
+    ['coc_new_coin','coc_new_u','coc_new_sub'],
+    ['coc_old_coin','coc_old_u','coc_old_sub'],
+    ['coc_other_coin','coc_other_u','coc_other_sub'],
+    ['coc_proxy_coin','coc_proxy_u','coc_proxy_sub']];
+  subs.forEach(([ci,ui,si])=>{
+    const v=(parseFloat($(ci)?.value)||0)+(parseFloat($(ui)?.value)||0);
+    if($(si)) $(si).textContent=v.toFixed(4).replace(/\.?0+$/,'');
+  });
+}
+function getCmpOC(){
+  // 如果开关未打开，返回本周超频值
+  if(!$('cmpOcDiff')?.checked) return getOC();
+  const sad_c=n($('coc_sad_coin').value)||0, sad_u=n($('coc_sad_u').value)||0;
+  const new_c=n($('coc_new_coin').value)||0, new_u=n($('coc_new_u').value)||0;
+  const old_c=n($('coc_old_coin').value)||0, old_u=n($('coc_old_u').value)||0;
+  const oth_c=n($('coc_other_coin').value)||0, oth_u=n($('coc_other_u').value)||0;
+  const pxy_c=n($('coc_proxy_coin').value)||0, pxy_u=n($('coc_proxy_u').value)||0;
+  return {
+    SAD:{coin:sad_c,u:sad_u,total:sad_c+sad_u},
+    '新合资':{coin:new_c,u:new_u,total:new_c+new_u},
+    '老合资':{coin:old_c,u:old_u,total:old_c+old_u},
+    '其他项':{coin:oth_c,u:oth_u,total:oth_c+oth_u},
+    '我方代':{coin:pxy_c,u:pxy_u,total:pxy_c+pxy_u},
+    '已经出':{coin:0,u:0,total:0},
+    _total:{coin:sad_c+new_c+old_c+oth_c+pxy_c,u:sad_u+new_u+old_u+oth_u+pxy_u,
+            total:sad_c+new_c+old_c+oth_c+pxy_c+sad_u+new_u+old_u+oth_u+pxy_u}
+  };
+}
 function getOC(){
   const sad_c=n($('oc_sad_coin').value)||0,sad_u=n($('oc_sad_u').value)||0;
   const new_c=n($('oc_new_coin').value)||0,new_u=n($('oc_new_u').value)||0;
@@ -642,34 +599,24 @@ function getOC(){
 }
 initOC();
 
+// ── 文件读取 ──
 let wb=null;
 function onDrag(e,on,zoneId){e.preventDefault();$(zoneId||'dropZone')?.classList.toggle('drag',on);}
 function onDrop(e){e.preventDefault();$('dropZone').classList.remove('drag');readFile(e.dataTransfer.files[0]);}
-function onFileChange(e){
-    readFile(e.target.files[0]);
-    e.target.value = ''; 
-}
+function onFileChange(e){readFile(e.target.files[0]);}
 function readFile(file){
-  if(!file)return; 
-  $('fileName').textContent='读取中...'; 
-  $('fileInfo').style.display='flex';
-  setSt('解析文件数据中，请稍候...');
-  
+  if(!file)return; setSt('读取中...');
   const r=new FileReader();
   r.onload=e=>{
-    setTimeout(()=>{
-        try{
-          wb=XLSX.read(e.target.result,{type:'array',cellDates:false,dateNF:'yyyy-mm-dd'});
-          $('fileName').textContent=file.name;
-          $('sheetInfo').textContent=`${wb.SheetNames.length} 个 Sheet`;
-          updateSels(wb.SheetNames);
-          $('btnRun').disabled=false;
-          setSt('读取完成，请设置日期范围后生成周报');
-        }catch(ex){
-            $('fileName').textContent='读取失败';
-            setSt('读取失败：'+ex.message);
-        }
-    }, 50);
+    try{
+      wb=XLSX.read(e.target.result,{type:'array',cellDates:false,dateNF:'yyyy-mm-dd'});
+      $('fileName').textContent=file.name;
+      $('fileInfo').style.display='flex';
+      $('sheetInfo').textContent=`${wb.SheetNames.length} 个 Sheet`;
+      updateSels(wb.SheetNames);
+      $('btnRun').disabled=false;
+      setSt('读取完成，请设置日期范围后生成周报');
+    }catch(ex){setSt('读取失败：'+ex.message);}
   };
   r.readAsArrayBuffer(file);
 }
@@ -682,11 +629,14 @@ function updateSels(names){
   ['收益表同步'].forEach(p=>{if(names.includes(p))$('selRev').value=p;});
 }
 function toRows(sheet){
+  // cellDates:true 让日期成为 Date 对象，避免序列号/格式问题
   const raw=XLSX.utils.sheet_to_json(sheet,{raw:true,defval:'',header:1,cellDates:true});
   if(!raw||raw.length<2) return [];
   const hdr=raw[0];
+  // 用第一列（登记日期）是否有值来判断数据起始行（跳过空行）
   let dataStart=1;
   while(dataStart<raw.length&&(!raw[dataStart][0]||raw[dataStart][0]==='')) dataStart++;
+  // 建立列名→索引映射（遇到重名只保留第一次出现，避免重名列覆盖）
   const nameToIdx={};
   hdr.forEach((name,i)=>{
     if(name==null||name==='') return;
@@ -697,9 +647,11 @@ function toRows(sheet){
     const k3=k.replace(/\n/g,'');
     if(nameToIdx[k3]==null) nameToIdx[k3]=i;
   });
+  // 日期列索引（用于把 Date 对象转字符串）
   const dateColIdx=nameToIdx['登记日期'];
   const toDateStr=v=>{
     if(v instanceof Date){
+      // 用 UTC 方法读取，与 xlsx.js 的 UTC 解析对齐（避免本地时区偏移一天）
       const y=v.getUTCFullYear(),m=String(v.getUTCMonth()+1).padStart(2,'0'),d=String(v.getUTCDate()).padStart(2,'0');
       return `${y}-${m}-${d}`;
     }
@@ -717,27 +669,28 @@ function toRows(sheet){
   });
 }
 
+// ── 常量 ──
 const CATS=['SAD','新合资','老合资','其他项','我方代','已经出'];
 const CAT_NAMES={'SAD':'SADG自营','新合资':'新合资（赵总）','老合资':'老合资','其他项':'其他项目','我方代':'我方代托','已经出':'已经出售/争议'};
 const BJ_VALID=['U本位','币本位'];
 
+// ── 核心计算 ──
 function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
   const result={};
   CATS.forEach(cat=>{result[cat]={total:{},byBase:{'U本位':{},'币本位':{}}};});
 
+  // ── 算力部分 ──
   CATS.forEach(cat=>{
-    const isProxy=cat==='我方代'; 
+    const isProxy=cat==='我方代'; // 我方代用 I/X 列计算达成率
     const ocVal=oc[cat]||0;
 
+    // byBase（U本位/币本位）
     ['U本位','币本位'].forEach(base=>{
       let sumH=0,sumK=0,sumBA=0,sumBL=0,sumBM=0,sumI=0,sumX=0;
       insRows.forEach(row=>{
         const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
         if(!miner||['矿工号','汇总',''].includes(miner)) return;
-        
-        const info = getSiteInfo(row);
-        const bn = info.cat;
-        
+        const bn=String(gIdx(row,65)||gRow(row,'分类')||'').trim();
         const bj=String(gIdx(row,61)||gRow(row,'采购\n资金分类')||'').trim();
         const bk=String(gIdx(row,62)||gRow(row,'需剔除场地')||'').trim();
         const date=normDate(String(gRow(row,'登记日期')||''));
@@ -769,18 +722,17 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
       };
     });
 
+    // total（不过滤BJ，NS有效/达成率仅限BJ_VALID）
     let sumH=0,sumK=0,sumBA=0,sumBL=0,sumBM=0,sumI=0,sumX=0;
     insRows.forEach(row=>{
       const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
       if(!miner||['矿工号','汇总',''].includes(miner)) return;
-      
-      const info = getSiteInfo(row); 
-      const bn = info.cat;
-      
+      const bn=String(gIdx(row,65)||gRow(row,'分类')||'').trim();
       const bj=String(gIdx(row,61)||gRow(row,'采购\n资金分类')||'').trim();
       const bk=String(gIdx(row,62)||gRow(row,'需剔除场地')||'').trim();
       const date=normDate(String(gRow(row,'登记日期')||''));
       if(bn!==cat) return;
+      const bjValid=BJ_VALID.includes(bj);
       if(date===to){
         sumH+=n(gIdx(row,7) ||gRow(row,'持有机器数'))||0;
         sumK+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
@@ -805,6 +757,7 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
     };
   });
 
+  // ── 收益部分：按矿工号从巡查表映射 BN(分类)/BJ(本位) 过滤 ──
   CATS.forEach(cat=>{
     ['U本位','币本位','total'].forEach(base=>{
       let sumBtc=0,sumUsd=0,sumProfit=0;
@@ -827,14 +780,17 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
     });
   });
 
-  let totH=0,totK=0,totBA=0,totBL=0,totBM=0,totBtc=0,totUsd=0,totProfit=0;
-  const totByBase={'U本位':{H:0,K:0,BA:0,BL:0,BM:0,btc:0,usd:0,profit:0},
-                   '币本位':{H:0,K:0,BA:0,BL:0,BM:0,btc:0,usd:0,profit:0}};
+  // ── 全部总揽 ──
+  let totH=0,totK=0,totBA=0,totBL=0,totBM=0,totI=0,totX=0,totBtc=0,totUsd=0,totProfit=0;
+  const totByBase={'U本位':{H:0,K:0,BA:0,BL:0,BM:0,I:0,X:0,btc:0,usd:0,profit:0},
+                   '币本位':{H:0,K:0,BA:0,BL:0,BM:0,I:0,X:0,btc:0,usd:0,profit:0}};
   CATS.forEach(cat=>{
     const t=result[cat].total;
     totH+=t.machines||0;totK+=t.manageP||0;totBA+=t.nsHold||0;
     totBL+=t.nsHoldEx||0;totBM+=t.nsEff||0;
     totBtc+=t.btc||0;totUsd+=t.usd||0;totProfit+=t.profit||0;
+    // 总揽的 I/X 汇总（用于我方代在总揽里的贡献）
+    // 总揽有效算力用 BM（NS模式），不用 I/X
     ['U本位','币本位'].forEach(base=>{
       const b=result[cat].byBase[base];
       totByBase[base].H+=b.machines||0;totByBase[base].K+=b.manageP||0;
@@ -844,6 +800,9 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
     });
   });
 
+  // 总揽有效算力 = BM/7（已在各分类total里算好并加总）
+  // 总揽达成率分母 = 总揽BA + 超频总揽值
+  // 总揽剔除达成率分母 = 总揽BL（BK=正常）+ 超频总揽值
   const ocTotObj=oc._total||{coin:0,u:0,total:0};
   const ocTot=ocTotObj.total||0;
   const ocTotCoin=ocTotObj.coin||0;
@@ -855,7 +814,7 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
     btc:b.btc,usd:b.usd,profit:b.profit,cost:b.usd-b.profit,
     elecPct:b.usd>0?(b.usd-b.profit)/b.usd:null
   });
-  const totEff=totBM; 
+  const totEff=totBM; // 已是7日均值
   result._total={
     total:{machines:totH,manageP:totK,nsHold:totBA,nsHoldEx:totBL,nsEff:totEff,
       rate:totBA+ocTot>0?totEff/(totBA+ocTot):null,
@@ -867,6 +826,7 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
   return result;
 }
 
+// ── 主流程 ──
 function runReport(){
   if(!wb){setSt('请先上传文件');return;}
   const s1=$('selIns').value,s2=$('selRev').value;
@@ -880,35 +840,44 @@ function runReport(){
     window._insRows=insRows; window._revRows=revRows;
     const oc=getOC();
 
+    // 建立矿工号→分类映射
     const minerCatMap={};
     insRows.forEach(row=>{
       const miner=String(row['矿工号']||'').split('\n')[0].trim();
-      const info = getSiteInfo(row);
-      const bn = info.cat;
+      const bn=String(gIdx(row,65)||gRow(row,'分类')||'').trim();
       const bj=String(gIdx(row,61)||gRow(row,'采购\n资金分类')||'').trim();
       if(miner&&bn&&!minerCatMap[miner]) minerCatMap[miner]={bn,bj};
     });
 
     const cur=calcWeek(insRows,revRows,minerCatMap,curFrom,curTo,oc);
-    const cmp=(cmpFrom&&cmpTo)?calcWeek(insRows,revRows,minerCatMap,cmpFrom,cmpTo,oc):null;
+    const cmpOc=getCmpOC();
+    const cmp=(cmpFrom&&cmpTo)?calcWeek(insRows,revRows,minerCatMap,cmpFrom,cmpTo,cmpOc):null;
 
     const rpt={cur,cmp,curFrom,curTo,cmpFrom,cmpTo,fn:$('fileName').textContent,oc};
     window._lastRpt=rpt;
 
     saveHist(rpt);
     renderReport(rpt);
+    if(_siteMeta) doCalcSites();
     $('btnExport').style.display='inline-block';
     setSt(`完成：本周 ${curFrom}～${curTo}${cmp?'，已生成对比':'，无对比周'}`);
   }catch(ex){setSt('错误：'+ex.message);console.error(ex);}
 }
 
+// ── 渲染 ──
 function renderReport(rpt){
   const{cur,cmp,curFrom,curTo,cmpFrom,cmpTo}=rpt;
   const hasCmp=!!cmp;
 
-  const CT=cur._total.total, CU=cur._total.byBase['U本位'], CB=cur._total.byBase['币本位'];
-  const PT=hasCmp?cmp._total.total:null, PU=hasCmp?cmp._total.byBase['U本位']:null, PB=hasCmp?cmp._total.byBase['币本位']:null;
+  // 总揽总计
+  const CT=cur._total.total;
+  const CU=cur._total.byBase['U本位'];
+  const CB=cur._total.byBase['币本位'];
+  const PT=hasCmp?cmp._total.total:null;
+  const PU=hasCmp?cmp._total.byBase['U本位']:null;
+  const PB=hasCmp?cmp._total.byBase['币本位']:null;
 
+  // 顶部周标签
   let h=`<div class="card">
     <div class="report-week-header">
       <span style="font-size:14px;font-weight:500">周报汇总</span>
@@ -916,17 +885,49 @@ function renderReport(rpt){
       ${hasCmp?`<span class="week-pill pill-gray">对比 ${cmpFrom} ～ ${cmpTo}</span>`:''}
     </div>`;
 
-  const cols=hasCmp?['指标','总揽','U本位','币本位','对比总揽','对比U本位','对比币本位','总揽环比']:['指标','总揽','U本位','币本位'];
+  // 总览对比表
+  const cols=hasCmp?
+    ['指标','总揽','U本位','币本位','对比总揽','对比U本位','对比币本位','总揽环比']:
+    ['指标','总揽','U本位','币本位'];
+
   h+=`<div class="tbl-wrap"><table class="overview-table"><thead><tr>`;
   cols.forEach(c=>h+=`<th>${c}</th>`);
   h+=`</tr></thead><tbody>`;
 
+  // 算力行
+  h+=`<tr class="section-row"><td colspan="${cols.length}">算力指标 &nbsp;·&nbsp; 取周末快照（NS有效取周内7日均值）</td></tr>`;
+  const pwrRows=[
+    ['管理机器数(台)', r=>fN(r.machines,0), false],
+    ['管理算力(P)', r=>fN(r.manageP,2), false],
+    ['NS持有算力(P)', r=>fN(r.nsHold,2), false],
+    ['NS有效算力(P)', r=>fN(r.nsEff,2), false],
+    ['周算力达成率', r=>r.rate!=null?`<span class="${rateClass(r.rate)}">${fPct(r.rate)}</span>`:'—', true],
+    ['剔除异常场地达成率', r=>r.rateEx!=null?`<span class="${rateClass(r.rateEx)}">${fPct(r.rateEx)}</span>`:'—', true],
+  ];
+  pwrRows.forEach(([label,fmt,isRate])=>{
+    h+=`<tr><td>${label}</td><td class="val">${fmt(CT)}</td><td>${fmt(CU)}</td><td>${fmt(CB)}</td>`;
+    if(hasCmp){
+      h+=`<td>${fmt(PT)}</td><td>${fmt(PU)}</td><td>${fmt(PB)}</td>`;
+      const curV=CT[Object.keys(CT).find(k=>fmt(CT)===fmt({[k]:CT[k],...CT}))];
+      h+=`<td>${isRate?deltaRate(CT.rate,PT?.rate):delta(CT.machines,PT?.machines)}</td>`;
+      // 重新按实际字段做环比
+    }
+    h+=`</tr>`;
+  });
+
+  // 环比单独处理
+  // 重写一下：直接按字段做
+  h=h.replace(/<\/tbody>/, '');
+  // 清空已添加的行，重新用正确方式渲染
+  const lastSectionIdx=h.lastIndexOf('<tr class="section-row">');
+  h=h.slice(0,lastSectionIdx);
+
   h+=`<tr class="section-row"><td colspan="${cols.length}">算力指标 &nbsp;·&nbsp; 取周末快照（NS有效取周内7日均值）</td></tr>`;
   const metrics=[
-    {label:'管理机器数(台)', key:'machines', fmt:(v)=>fN(v,0), isRate:false},
-    {label:'管理算力(P)', key:'manageP', fmt:(v)=>fN(v,2), isRate:false},
-    {label:'NS持有算力(P)', key:'nsHold', fmt:(v)=>fN(v,2), isRate:false},
-    {label:'NS有效算力(P)', key:'nsEff', fmt:(v)=>fN(v,2), isRate:false},
+    {label:'管理机器数(台)', key:'machines', fmt:(v)=>fN(v,0), isDelta:false},
+    {label:'管理算力(P)', key:'manageP', fmt:(v)=>fN(v,2), isDelta:false},
+    {label:'NS持有算力(P)', key:'nsHold', fmt:(v)=>fN(v,2), isDelta:false},
+    {label:'NS有效算力(P)', key:'nsEff', fmt:(v)=>fN(v,2), isDelta:false},
     {label:'周算力达成率', key:'rate', fmt:(v)=>v!=null?`<span class="${rateClass(v)}">${fPct(v)}</span>`:'—', isRate:true},
     {label:'剔除异常场地达成率', key:'rateEx', fmt:(v)=>v!=null?`<span class="${rateClass(v)}">${fPct(v)}</span>`:'—', isRate:true},
   ];
@@ -964,6 +965,7 @@ function renderReport(rpt){
 
   h+=`</tbody></table></div></div>`;
 
+  // 分类明细（折叠手风琴）
   h+=`<div class="card"><div class="card-title">分类明细</div>`;
   CATS.forEach(cat=>{
     const CT2=cur[cat].total,CU2=cur[cat].byBase['U本位'],CB2=cur[cat].byBase['币本位'];
@@ -988,6 +990,7 @@ function renderReport(rpt){
               ${hasCmp?'<th>对比达成率</th><th>对比剔除率</th><th>达成率环比</th>':''}
             </tr></thead><tbody>`;
 
+    // 总揽行
     h+=`<tr class="total-row">
       <td>总揽</td><td>—</td>
       <td>${fN(CT2.machines,0)}</td><td>${fN(CT2.nsHold,2)}</td><td>${fN(CT2.nsEff,2)}</td>
@@ -998,6 +1001,7 @@ function renderReport(rpt){
       ${hasCmp?`<td class="${rateClass(PT2?.rate||0)}">${fPct(PT2?.rate)}</td><td class="${rateClass(PT2?.rateEx||0)}">${fPct(PT2?.rateEx)}</td><td>${deltaRate(CT2.rate,PT2?.rate)}</td>`:''}
     </tr>`;
 
+    // U本位行
     const PU2=hasCmp?cmp[cat].byBase['U本位']:null;
     h+=`<tr class="sub-row">
       <td>U本位</td><td style="color:var(--text3)">U本位</td>
@@ -1009,6 +1013,7 @@ function renderReport(rpt){
       ${hasCmp?`<td class="${rateClass(PU2?.rate||0)}">${fPct(PU2?.rate)}</td><td class="${rateClass(PU2?.rateEx||0)}">${fPct(PU2?.rateEx)}</td><td>${deltaRate(CU2.rate,PU2?.rate)}</td>`:''}
     </tr>`;
 
+    // 币本位行
     const PB2=hasCmp?cmp[cat].byBase['币本位']:null;
     h+=`<tr class="sub-row">
       <td>币本位</td><td style="color:var(--text3)">币本位</td>
@@ -1025,6 +1030,7 @@ function renderReport(rpt){
   h+=`</div>`;
 
   $('reportArea').innerHTML=h;
+  // 更新币价测算面板数据
   if(window._lastRpt){
     const t=window._lastRpt.cur._total.total;
     $('lp_btc').textContent=fN(t.btc,4)+' BTC';
@@ -1036,6 +1042,7 @@ function renderReport(rpt){
 
 function togAcc(id){const b=$(id),a=$(`${id}-arr`);const o=b.classList.toggle('open');a.classList.toggle('open',o);}
 
+// ── 导出 ──
 function exportExcel(){
   const rpt=window._lastRpt;
   if(!rpt){alert('请先生成周报');return;}
@@ -1043,6 +1050,7 @@ function exportExcel(){
   const hasCmp=!!cmp;
   const ewb=XLSX.utils.book_new();
 
+  // 总览sheet
   const hdr=['分类','维度','管理机器数','管理算力(P)','NS持有(P)','NS有效(P)','周达成率','剔除异常达成率','产出BTC','USD收入','托管运维费','毛利','电费占比'];
   if(hasCmp) hdr.push('对比周达成率','达成率环比(pp)','USD环比');
   const rows=[['NS周报汇总',`本周:${curFrom}~${curTo}${hasCmp?` 对比:${cmpFrom}~${cmpTo}`:''}`,],[],hdr];
@@ -1065,6 +1073,7 @@ function exportExcel(){
   XLSX.writeFile(ewb,`NS周报_${curFrom}_${curTo}.xlsx`);
 }
 
+// ── 历史记录 ──
 const HK='ns_weekly_hist_v1';
 function loadH(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch{return[];}}
 function saveHist(rpt){
@@ -1104,268 +1113,287 @@ function renderHist(){
 }
 function delH(i){const arr=loadH();arr.splice(i,1);localStorage.setItem(HK,JSON.stringify(arr));renderHist();}
 
+// ── 场地明细（SADG观察者链接表 + 巡查表 + 收益表）──
 let _siteData = null;
 let siteWb = null;
+let _siteMeta = null;
 
 function onDrag(e,on,zoneId){e.preventDefault();$(zoneId||'dropZone')?.classList.toggle('drag',on);}
 function onSiteDrop(e){e.preventDefault();$('siteDropZone').classList.remove('drag');readSiteFile(e.dataTransfer.files[0]);}
-function onSiteFileChange(e){
-    readSiteFile(e.target.files[0]);
-    e.target.value = ''; 
+function onSiteFileChange(e){readSiteFile(e.target.files[0]);}
+
+// ── 解析 SADG观察者链接表 ──
+function parseSiteMeta(wb){
+  const sheetName=wb.SheetNames.find(n=>n.includes('观察者'))||wb.SheetNames[0];
+  const ws=wb.Sheets[sheetName];
+  const raw=XLSX.utils.sheet_to_json(ws,{raw:true,defval:null,header:1});
+  const siteMeta={};
+  const siteOrder=[];
+  // minerToSite: miner → [siteKey,...] （一个矿工号可属于多个场地，如矿场管理）
+  const minerToSite={};
+  let curCat='',curSite='',curCode='';
+  for(let i=2;i<raw.length;i++){
+    const row=raw[i];
+    if(!row) continue;
+    const catRaw=row[0]!=null?String(row[0]).replace(/\n/g,' ').trim():'';
+    const siteRaw=row[1]!=null?String(row[1]).trim():'';
+    const codeRaw=row[2]!=null?String(row[2]).trim():'';
+    const acctsRaw=row[8]!=null?String(row[8]).trim():'';
+    if(catRaw) curCat=catRaw;
+    if(siteRaw) curSite=siteRaw;
+    if(codeRaw) curCode=codeRaw;
+    if(!acctsRaw||['子账户（1主2备）','/',''].includes(acctsRaw)) continue;
+    const allAccts=acctsRaw.split('\n')
+      .map(a=>a.trim().replace(/^\d+[.\s]+/,'').trim())
+      .filter(Boolean);
+    if(!allAccts.length) continue;
+    const siteKey=`${curCat}|||${curSite}`;
+    if(!siteMeta[siteKey]){
+      siteMeta[siteKey]={cat:curCat,name:curSite,code:curCode,miners:[]};
+      siteOrder.push(siteKey);
+    }
+    allAccts.forEach(acct=>{
+      if(!siteMeta[siteKey].miners.includes(acct))
+        siteMeta[siteKey].miners.push(acct);
+      // 支持一矿工号→多场地（矿场管理与其他分类重叠）
+      if(!minerToSite[acct]) minerToSite[acct]=[];
+      if(!minerToSite[acct].includes(siteKey))
+        minerToSite[acct].push(siteKey);
+    });
+  }
+  return {siteMeta,siteOrder,minerToSite};
 }
 
-function calcSiteFromIns(insRows, revRows, from, to){
-  const sites={};   
-  const order=[];
-  const codeToName={}; 
+// ── 从巡查表+收益表按场地汇总 ──
+function calcSiteFromIns(insRows,revRows,from,to,minerToSite,siteMeta,siteOrder){
+  const results={};
+  siteOrder.forEach(key=>{
+    results[key]={machines:0,theorySnap:0,
+      h24DailySum:{},h24DailyCnt:{},  // 每天累计
+      profit:0};
+  });
 
   insRows.forEach(row=>{
-    const date=normDate(String(gRow(row,'登记日期')||''));
-    if(date<from||date>to) return;
     const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
     if(!miner||['矿工号','汇总',''].includes(miner)) return;
-    
-    const info = getSiteInfo(row); 
-    const code = info.code;
-    const siteName = info.siteName;
-    const bn = info.cat;
-    
-    if(!siteName) return;
-
-    if(code && !codeToName[code]) codeToName[code] = siteName;
-
-    if(!sites[siteName]){
-      sites[siteName]={
-        siteName, 
-        cat:bn, 
-        codes: new Set(),
-        machines:0, theoryP:0, fault:0, faultHasData:false,
-        dailyEff:{},  
-        dailyFault:{}, 
-        profit:0
-      };
-      order.push(siteName);
-    }
-    const s=sites[siteName];
-    if(code) s.codes.add(code); 
-
-    if(date===to){
-      s.machines+=n(gIdx(row,7)||gRow(row,'持有机器数'))||0;
-      s.theoryP+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
-    }
-    if(!s.dailyEff[date]) s.dailyEff[date]={h24:0,theory:0};
-    s.dailyEff[date].h24+=n(gIdx(row,8)||gRow(row,'24h平均算力（P）'))||0;
-    s.dailyEff[date].theory+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
-    
-    if(!s.dailyFault[date]) s.dailyFault[date]={fault:0,machines:0};
-    const fStr=String(gIdx(row,12)||gRow(row,'总故障数')||'').trim();
-    if(!['未填写','','None','#DIV/0!'].includes(fStr)){
-      s.dailyFault[date].fault+=n(gIdx(row,12))||0;
-      s.faultHasData=true;
-    }
-    s.dailyFault[date].machines+=n(gIdx(row,7)||gRow(row,'持有机器数'))||0;
-  });
-
-  const profitByName={};
-  revRows.forEach(row=>{
+    const keys=minerToSite[miner];
+    if(!keys||!keys.length) return;
     const date=normDate(String(gRow(row,'登记日期')||''));
     if(date<from||date>to) return;
-    const code=String(gIdx(row,2)||gRow(row,'场地编号')||'').trim();
-    
-    const siteName = codeToName[code] || code;
-    if(!siteName) return;
-
-    const p=n(gIdx(row,33)||gRow(row,'最近24小时理论毛利（美元）'));
-    if(p!=null) profitByName[siteName]=(profitByName[siteName]||0)+p;
-  });
-
-  order.forEach(siteName=>{
-    const s=sites[siteName];
-    s.profit=profitByName[siteName]||0;
-    s.theoryT=s.theoryP*1000;
-    
-    let sumH24 = 0;
-    let sumTheory = 0;
-    Object.values(s.dailyEff).forEach(d => {
-      sumH24 += d.h24;
-      sumTheory += d.theory;
+    const h24=n(gIdx(row,8)||gRow(row,'24h平均算力（P）'));
+    const theory=n(gIdx(row,10)||gRow(row,'理论总算力(P)'));
+    const machines=n(gIdx(row,7)||gRow(row,'持有机器数'));
+    keys.forEach(key=>{
+      if(!results[key]) return;
+      const r=results[key];
+      if(!r.h24DailySum[date]) r.h24DailySum[date]=0;
+      if(h24!=null) r.h24DailySum[date]+=h24;
+      // 周末快照
+      if(date===to){
+        r.machines+=machines||0;
+        r.theorySnap+=theory||0;
+      }
     });
-    s.effAvg = sumTheory > 0 ? (sumH24 / sumTheory) : null;
-    
-    const faults=Object.values(s.dailyFault).filter(d=>d.machines>0).map(d=>d.fault/d.machines);
-    s.faultPct=s.faultHasData&&faults.length?faults.reduce((a,b)=>a+b,0)/faults.length:null;
   });
 
-  return {sites,order};
+  // 收益（矿工号 → 场地）
+  revRows.forEach(row=>{
+    const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
+    if(!miner||['矿工号','汇总',''].includes(miner)) return;
+    const keys=minerToSite[miner];
+    if(!keys||!keys.length) return;
+    const date=normDate(String(gRow(row,'登记日期')||''));
+    if(date<from||date>to) return;
+    const p=n(gIdx(row,33)||gRow(row,'最近24小时理论毛利（美元）'));
+    if(p!=null) keys.forEach(key=>{if(results[key]) results[key].profit+=p;});
+  });
+
+  // 计算最终指标
+  siteOrder.forEach(key=>{
+    const r=results[key];
+    r.theoryT=r.theorySnap*1000;
+    // 有效率 = 周内日均24h算力（排除为0的天）/ 期间最后一天理论算力（不扣故障）
+    const dailyVals=Object.values(r.h24DailySum).filter(v=>v>0);
+    const h24Avg=dailyVals.length>0?dailyVals.reduce((a,b)=>a+b,0)/dailyVals.length:null;
+    r.effAvg=(h24Avg!=null&&r.theorySnap>0)?h24Avg/r.theorySnap:null;
+    r.zerodays=Object.values(r.h24DailySum).filter(v=>v===0).length; // 零值天数
+  });
+  return results;
 }
 
 function readSiteFile(file){
   if(!file) return;
-  $('siteStatus').textContent='读取中，请稍候...';
-  
+  $('siteStatus').textContent='读取中...';
   const r=new FileReader();
   r.onload=e=>{
-    setTimeout(() => {
-        try{
-          siteWb=XLSX.read(e.target.result,{type:'array',cellDates:false,dateNF:'yyyy-mm-dd'});
-          $('siteFileName').textContent=file.name;
-          $('siteFileInfo').style.display='flex';
-          const sel=$('selSiteSheet');
-          sel.innerHTML='';
-          siteWb.SheetNames.forEach(nm=>{
-            if(nm==='Sheet1') return;
-            const o=document.createElement('option');o.value=o.textContent=nm;sel.appendChild(o);
-          });
-          if(sel.options.length>0){sel.selectedIndex=0;loadSiteSheet();}
-          $('siteStatus').textContent='';
-        }catch(ex){$('siteStatus').textContent='读取失败：'+ex.message;}
-    }, 50);
+    try{
+      siteWb=XLSX.read(e.target.result,{type:'array',cellDates:false,dateNF:'yyyy-mm-dd'});
+      $('siteFileName').textContent=file.name;
+      $('siteFileInfo').style.display='flex';
+      _siteMeta=parseSiteMeta(siteWb);
+      const n_sites=Object.keys(_siteMeta.siteMeta).length;
+      const n_miners=Object.keys(_siteMeta.minerToSite).length;
+      $('siteStatus').textContent=`解析完成：${n_sites}个场地，${n_miners}个子账户`;
+      if(window._lastRpt) doCalcSites();
+    }catch(ex){$('siteStatus').textContent='读取失败：'+ex.message;console.error(ex);}
   };
   r.readAsArrayBuffer(file);
 }
 
-function parseSiteReport(raw){
-  const byName={};
-  const byCode={};
-  
+// ── 读取对比周报表（xlsx）──
+let _siteRptData=null;
+let siteRptWb=null;
+
+function onSiteRptDrop(e){e.preventDefault();$('siteRptDropZone')?.classList.remove('drag');readSiteRpt(e.dataTransfer.files[0]);}
+function onSiteRptFileChange(e){readSiteRpt(e.target.files[0]);}
+function readSiteRpt(file){
+  if(!file) return;
+  $('siteRptStatus').textContent='读取中...';
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      siteRptWb=XLSX.read(e.target.result,{type:'array',cellDates:false,dateNF:'yyyy-mm-dd'});
+      $('siteRptFileName').textContent=file.name;
+      $('siteRptFileInfo').style.display='flex';
+      const sel=$('selRptSheet');
+      sel.innerHTML='';
+      siteRptWb.SheetNames.filter(n=>n!=='Sheet1').forEach(nm=>{
+        const o=document.createElement('option');o.value=o.textContent=nm;sel.appendChild(o);
+      });
+      $('selRptSheet').dispatchEvent(new Event('change'));
+      $('siteRptStatus').textContent='';
+    }catch(ex){$('siteRptStatus').textContent='读取失败：'+ex.message;}
+  };
+  r.readAsArrayBuffer(file);
+}
+function loadRptSheet(){
+  if(!siteRptWb) return;
+  const ws=siteRptWb.Sheets[$('selRptSheet').value];
+  const raw=XLSX.utils.sheet_to_json(ws,{raw:true,defval:null,header:1});
+  _siteRptData={};
+  let curCat='';
   for(let i=2;i<raw.length;i++){
     const row=raw[i];
     if(!row||!row.some(v=>v!=null)) continue;
-    const seq=row[0];
-    if(seq==null||isNaN(parseFloat(seq))) continue;
-    
+    if(isNaN(parseFloat(row[0]))) continue;
+    if(row[1]!=null&&String(row[1]).trim()) curCat=String(row[1]).replace(/\n/g,' ').trim();
     const name=String(row[2]||'').trim();
     const code=String(row[3]||'').trim();
     if(!name) continue;
-    
-    if(!byName[name]) byName[name]={machines:0,theoryT:0,profit:null,effList:[],faultList:[],names:[]};
-    const r=byName[name];
-    r.names.push(name);
-    r.machines+=parseFloat(row[5])||0;
-    r.theoryT+=parseFloat(row[6])||0;
-    const p=row[7]!=null&&row[7]!=='/'?parseFloat(row[7]):null;
-    if(p!=null) r.profit=(r.profit||0)+p;
-    const eff=row[9]!=null&&row[9]!=='/'?parseFloat(row[9]):null;
-    if(eff!=null) r.effList.push(eff);
-    const fault=row[11]!=null&&row[11]!=='/'?parseFloat(row[11]):null;
-    if(fault!=null) r.faultList.push(fault);
-
-    if(code) byCode[code] = r;
+    // key 用 cat|||name 匹配
+    const key=`${curCat}|||${name}`;
+    _siteRptData[key]={
+      cat:curCat,name,code,
+      machines:parseFloat(row[5])||0,
+      theoryT:parseFloat(row[6])||0,
+      profit:row[7]!=null?parseFloat(row[7]):null,
+      eff:row[9]!=null&&row[9]!=='/'?parseFloat(row[9]):null,
+    };
   }
-  Object.values(byName).forEach(r=>{
-    r.effAvg=r.effList.length?r.effList.reduce((a,b)=>a+b,0)/r.effList.length:null;
-    r.faultAvg=r.faultList.length?r.faultList.reduce((a,b)=>a+b,0)/r.faultList.length:null;
-  });
-  return { byName, byCode };
+  if(_siteData) renderSites();
 }
 
-function loadSiteSheet(){
-  if(!siteWb||!window._lastRpt){
-    $('siteStatus').textContent=window._lastRpt?'':'请先在「周报」页生成报告';
-    return;
-  }
-  const sheetName=$('selSiteSheet').value;
-  const ws=siteWb.Sheets[sheetName];
-  const raw=XLSX.utils.sheet_to_json(ws,{raw:true,defval:null,header:1});
-  const weekTitle=String(raw[0]?.[0]||sheetName);
-  const reportData=parseSiteReport(raw);
-
+function doCalcSites(){
+  if(!_siteMeta||!window._lastRpt) return;
   const {curFrom,curTo}=window._lastRpt;
-  const calc=calcSiteFromIns(window._insRows,window._revRows,curFrom,curTo);
-
-  _siteData={calc,reportData,weekTitle,from:curFrom,to:curTo};
+  const results=calcSiteFromIns(
+    window._insRows,window._revRows,curFrom,curTo,
+    _siteMeta.minerToSite,_siteMeta.siteMeta,_siteMeta.siteOrder
+  );
+  _siteData={results,meta:_siteMeta,from:curFrom,to:curTo};
   renderSites();
 }
 
 function renderSites(){
-  if(!_siteData){$('sitesArea').innerHTML='<div class="empty">请先生成周报，并上传场地周报文件</div>';return;}
-  const {calc,reportData,weekTitle}=_siteData;
+  if(!_siteData){$('sitesArea').innerHTML='<div class="empty">请先生成周报，并上传「自营算力托管场地明细表」</div>';return;}
+  const {results,meta,from,to}=_siteData;
+  const {siteMeta,siteOrder}=meta;
   const hideGood=$('sitesHideGood')?.checked;
-  $('sites-week-badge').textContent=weekTitle;
+  const hasCmp=!!_siteRptData;
+  $('sites-week-badge').textContent=`${from} ～ ${to}`;
 
   const catOrder=[];
-  calc.order.forEach(siteName=>{
-    const cat=calc.sites[siteName].cat;
-    if(cat&&!catOrder.includes(cat)) catOrder.push(cat);
-  });
-  const CAT_NAMES={'SAD':'SADG自营','新合资':'新合资（赵总）','老合资':'老合资','其他项':'其他项目','我方代':'我方代托','已经出':'已经出售/争议'};
-
-  const chkBadge=(calcV,reportV,tol,isPct)=>{
-    if(reportV==null||calcV==null) return '<span style="color:var(--text3);font-size:10px">无对照</span>';
-    const diff=isPct?Math.abs(calcV-reportV):Math.abs(calcV-reportV)/(Math.abs(reportV)||1);
-    const ok=isPct?diff<=tol:diff<=tol;
-    return ok?'<span style="color:var(--green);font-size:10px">✓</span>'
-             :`<span style="color:var(--red);font-size:10px">✗${isPct?(diff*100).toFixed(1)+'pp':(diff*100).toFixed(1)+'%'}</span>`;
-  };
+  siteOrder.forEach(k=>{const c=siteMeta[k].cat;if(!catOrder.includes(c))catOrder.push(c);});
 
   let h='';
   catOrder.forEach(cat=>{
-    let snames=calc.order.filter(sn=>calc.sites[sn].cat===cat);
-    if(hideGood) snames=snames.filter(sn=>{
-      const s=calc.sites[sn];
-      return (s.effAvg!=null&&s.effAvg<0.85)||(s.faultPct!=null&&s.faultPct>0.1)||(s.profit<0);
+    let keys=siteOrder.filter(k=>siteMeta[k].cat===cat);
+    if(hideGood) keys=keys.filter(k=>{
+      const r=results[k];
+      return (r.effAvg!=null&&r.effAvg<0.85)||(r.profit<0);
     });
-    if(!snames.length) return;
+    if(!keys.length) return;
+
+    const catM=keys.reduce((s,k)=>s+results[k].machines,0);
+    const catT=keys.reduce((s,k)=>s+results[k].theoryT,0);
+    const catP=keys.reduce((s,k)=>s+results[k].profit,0);
 
     h+=`<div class="site-group"><div class="card" style="padding:0;overflow:hidden">
       <div class="site-group-head">
-        <span class="site-group-name">${CAT_NAMES[cat]||cat}</span>
-        <span class="site-group-count">${snames.length} 个合并场地</span>
+        <span class="site-group-name">${cat}</span>
+        <span class="site-group-count">${keys.length}个场地</span>
+        <span style="font-size:11px;color:var(--text2);margin-left:auto">
+          ${catM.toLocaleString()}台 · ${(catT/1e6).toFixed(3)}EH/s · 毛利$${fN(catP,0)}
+        </span>
       </div>
       <div class="tbl-wrap"><table class="site-table">
         <thead><tr>
-          <th style="width:28px">#</th>
-          <th style="min-width:180px">场地名称</th>
-          <th>抓手代码</th>
-          <th class="r">总托管数量</th>
+          <th style="width:24px">#</th>
+          <th style="min-width:200px">场地名称</th>
+          <th>代码</th>
+          <th class="r">托管数量(台)</th>
           <th class="r">总算力(T)</th>
-          <th class="r">场地周毛利($)</th>
-          <th style="min-width:120px">周平均算力有效率</th>
-          <th class="r">总故障占比</th>
-          <th style="min-width:70px">校验</th>
+          <th class="r">周毛利($)</th>
+          <th style="min-width:150px">周平均算力有效率</th>
+          ${hasCmp?'<th style="min-width:110px">对比周报</th>':''}
         </tr></thead><tbody>`;
 
-    snames.forEach((siteName,idx)=>{
-      const s=calc.sites[siteName];
-      
-      let rpt = reportData.byName[siteName];
-      if(!rpt) {
-        for(let c of s.codes) {
-           if(reportData.byCode[c]) {
-               rpt = reportData.byCode[c];
-               break;
-           }
+    keys.forEach((key,idx)=>{
+      const s=siteMeta[key];
+      const r=results[key];
+      const effPct=r.effAvg!=null?r.effAvg*100:null;
+      const effColor=r.effAvg==null?'var(--text3)':r.effAvg>=0.9?'var(--green)':r.effAvg>=0.7?'var(--amber)':'var(--red)';
+      const pColor=r.profit>=0?'var(--green)':'var(--red)';
+      const zeroNote=r.zerodays>0?`<span style="font-size:9px;color:var(--amber)">含${r.zerodays}天零值</span>`:'';
+
+      // 对比周报
+      let cmpCell='';
+      if(hasCmp){
+        // 按 cat|||name 精确匹配，再试 code 匹配
+        let rpt=_siteRptData[key];
+        if(!rpt) rpt=Object.values(_siteRptData).find(v=>v.code===s.code&&v.cat===s.cat);
+        if(!rpt) rpt=Object.values(_siteRptData).find(v=>v.name===s.name||v.code===s.code);
+        if(rpt){
+          const mDiff=rpt.machines?Math.abs(r.machines-rpt.machines)/rpt.machines:null;
+          const eDiff=rpt.eff!=null&&r.effAvg!=null?Math.abs(r.effAvg-rpt.eff):null;
+          const pDiff=rpt.profit!=null?Math.abs(r.profit-rpt.profit)/(Math.abs(rpt.profit)||1):null;
+          const ok=(!mDiff||mDiff<0.01)&&(!eDiff||eDiff<0.02)&&(!pDiff||pDiff<0.02);
+          cmpCell=`<td style="font-size:10px">
+            <div style="color:${mDiff!=null&&mDiff>0.01?'var(--red)':'var(--text2)'}">台:${rpt.machines?.toLocaleString()??'—'}</div>
+            <div style="color:${eDiff!=null&&eDiff>0.02?'var(--red)':'var(--text2)'}">效率:${rpt.eff!=null?(rpt.eff*100).toFixed(1)+'%':'—'}</div>
+            <div>${ok?'<span class="badge ok">✓</span>':'<span class="badge err">有差异</span>'}</div>
+          </td>`;
+        } else {
+          cmpCell='<td style="color:var(--text3);font-size:10px">无对照</td>';
         }
       }
 
-      const effPct=s.effAvg!=null?s.effAvg*100:null;
-      const effColor=s.effAvg==null?'var(--text3)':s.effAvg>=0.9?'var(--green)':s.effAvg>=0.7?'var(--amber)':'var(--red)';
-      const faultColor=s.faultPct==null?'var(--text3)':s.faultPct>0.1?'var(--red)':s.faultPct>0.03?'var(--amber)':'var(--green)';
-      const pColor=s.profit>=0?'var(--green)':'var(--red)';
-      
-      const chkM=rpt?chkBadge(s.machines,rpt.machines,0.01,false):'';
-      const chkT=rpt?chkBadge(s.theoryT,rpt.theoryT,0.01,false):'';
-      const chkP=rpt&&rpt.profit!=null?chkBadge(s.profit,rpt.profit,0.02,false):'';
-      const codeStr = Array.from(s.codes).join(', ');
-
       h+=`<tr>
         <td style="color:var(--text3)">${idx+1}</td>
-        <td style="font-weight:500">${rpt&&rpt.names[0]?rpt.names[0]:s.siteName}</td>
-        <td style="color:var(--text2);font-size:11px">${codeStr}</td>
-        <td class="r">${s.machines>0?s.machines.toLocaleString():'—'} ${chkM}</td>
-        <td class="r">${s.theoryT>0?Math.round(s.theoryT).toLocaleString():'—'} ${chkT}</td>
-        <td class="r" style="color:${pColor};font-weight:500">${s.profit!==0?'$'+fN(s.profit,0):'—'} ${chkP}</td>
+        <td style="font-weight:500">${s.name}</td>
+        <td style="color:var(--text2);font-size:11px">${s.code}</td>
+        <td class="r">${r.machines>0?r.machines.toLocaleString():'—'}</td>
+        <td class="r">${r.theoryT>0?Math.round(r.theoryT).toLocaleString():'—'}</td>
+        <td class="r" style="color:${pColor};font-weight:500">${r.profit!==0?'$'+fN(r.profit,0):'—'}</td>
         <td>${effPct!=null?`<div class="eff-bar-wrap">
           <div class="eff-bar"><div class="eff-bar-fill" style="width:${Math.min(effPct,100).toFixed(1)}%;background:${effColor}"></div></div>
-          <span style="font-size:11px;color:${effColor};min-width:40px">${effPct.toFixed(2)}%</span>
-        </div>${rpt&&rpt.effAvg!=null?`<span style="font-size:9px;color:var(--text3)">报:${(rpt.effAvg*100).toFixed(1)}%</span>`:''}`:'<span style="color:var(--text3)">—</span>'}</td>
-        <td class="r" style="color:${faultColor}">${s.faultPct!=null?(s.faultPct*100).toFixed(2)+'%':'—'}</td>
-        <td>${(chkM+chkT+chkP).includes('✗')?'<span class="badge err">有差异</span>':rpt?'<span class="badge ok">通过</span>':'<span style="color:var(--text3);font-size:10px">—</span>'}</td>
+          <span style="font-size:11px;color:${effColor};min-width:42px">${effPct.toFixed(2)}%</span>
+        </div>${zeroNote}`:'<span style="color:var(--text3)">—</span>'}</td>
+        ${hasCmp?cmpCell:''}
       </tr>`;
     });
     h+=`</tbody></table></div></div></div>`;
   });
-
   $('sitesArea').innerHTML=h||'<div class="empty">暂无场地数据</div>';
 }
 
@@ -1375,12 +1403,13 @@ function showPage(name,el){
   $(`page-${name}`).classList.add('active');
   if(el)el.classList.add('active');
   if(name==='history') renderHist();
-  if(name==='sites'){ if(siteWb&&window._lastRpt) loadSiteSheet(); else if(_siteData) renderSites(); }
+  if(name==='sites'){ if(_siteMeta&&window._lastRpt) doCalcSites(); else renderSites(); }
 }
 async function fetchBTCPrice(){
   const btn=$('btnFetchPrice');
   btn.textContent='获取中...';btn.disabled=true;
   $('priceSource').textContent='正在获取...';
+  // 多个数据源依次尝试（都支持 CORS）
   const sources=[
     {name:'Coinbase',url:'https://api.coinbase.com/v2/prices/BTC-USD/spot',
      parse:d=>parseFloat(d?.data?.amount)},
@@ -1408,7 +1437,7 @@ async function fetchBTCPrice(){
         ok=true;
         break;
       }
-    }catch(e){ }
+    }catch(e){ /* 尝试下一个源 */ }
   }
   if(!ok){
     $('priceSource').innerHTML='<span style="color:var(--red)">自动获取失败（可能是网络/CORS限制），请手动输入价格</span>';
