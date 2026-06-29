@@ -175,7 +175,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <input type="file" accept=".xlsx,.xls,.csv" onchange="onMapFileChange(event)">
       <div style="font-size:16px;margin-bottom:3px">🔗</div>
       <div class="upload-title" style="font-size:13px">上传《自营算力托管场地明细表》 (可选，强烈建议)</div>
-      <div class="upload-sub">自动提取“SADG观察者链接”以精准匹配场地名称与分类 (支持 xlsx 或 csv)</div>
+      <div class="upload-sub">自动提取 A列(分类) 及 观察者链接(主/备)，精准合并场地数据</div>
     </div>
     <div id="mapFileInfo" style="display:none; margin-top:8px" class="file-ok">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3b6d11" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -389,7 +389,6 @@ function n(v){
   return isNaN(f)?null:f;
 }
 
-// 安全读取行字段：支持换行符/空格/无分隔三种key变体
 function gRow(row,key){
   if(row[key]!=null&&row[key]!=='') return row[key];
   const k2=key.replace(/\n/g,' ').trim();
@@ -398,7 +397,7 @@ function gRow(row,key){
   if(row[k3]!=null&&row[k3]!=='') return row[k3];
   return '';
 }
-// 按列索引直接读取（解决重名列被覆盖问题）
+
 function gIdx(row,idx){return row['__idx_'+idx]??'';}
 function fN(v,d=2){return v!=null?Number(v).toFixed(d):'—';}
 function fPct(v){return v!=null?`${(Number(v)*100).toFixed(2)}%`:'—';}
@@ -436,69 +435,92 @@ function deltaRate(cur,cmp){
 }
 
 // =======================
-// 新增：映射表读取与应用
+// 新增：映射表读取与应用 (顶层驱动设计)
 // =======================
-let _siteMapping = {}; // 存放代码 -> { name, cat }
+let _siteMapping = {}; // url/code -> { name, cat }
 let mapWb = null;
 
 function onMapDrop(e){e.preventDefault();$('mapDropZone').classList.remove('drag');readMapFile(e.dataTransfer.files[0]);}
-function onMapFileChange(e){readMapFile(e.target.files[0]);}
+function onMapFileChange(e){
+    readMapFile(e.target.files[0]);
+    e.target.value = ''; 
+}
 
 function readMapFile(file){
   if(!file) return;
-  setSt('读取映射表中...');
+  $('mapFileName').textContent='读取中...';
+  $('mapFileInfo').style.display='flex';
+  setSt('解析映射表中，请稍候...');
+  
   const r=new FileReader();
   r.onload=e=>{
-    try{
-      mapWb=XLSX.read(e.target.result,{type:'array'});
-      $('mapFileName').textContent=file.name;
-      $('mapFileInfo').style.display='flex';
+    setTimeout(() => {
+        try{
+          mapWb=XLSX.read(e.target.result,{type:'array'});
+          $('mapFileName').textContent=file.name;
 
-      // 自动寻找名叫 SADG观察者 的 sheet，找不到就用第一个
-      let targetSheet = mapWb.SheetNames.find(n=>n.includes('SADG观察者链接')||n.includes('观察者'));
-      if(!targetSheet) targetSheet = mapWb.SheetNames[0];
+          let targetSheet = mapWb.SheetNames.find(n=>n.includes('SADG观察者链接')||n.includes('观察者'));
+          if(!targetSheet) targetSheet = mapWb.SheetNames[0];
 
-      const sheet = mapWb.Sheets[targetSheet];
-      const raw = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+          const sheet = mapWb.Sheets[targetSheet];
+          const raw = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
 
-      _siteMapping = {};
-      if(raw.length > 0) {
-         let codeIdx=-1, nameIdx=-1, catIdx=-1;
-         // 在前5行内扫描表头关键字
-         for(let i=0; i<Math.min(5, raw.length); i++) {
-             const hr = raw[i].map(String);
-             hr.forEach((h, idx)=>{
-                 if(h.includes('子账户')||h.includes('代码')||h.includes('API')) codeIdx=idx;
-                 if(h.includes('场地名称')||h.includes('场地')) nameIdx=idx;
-                 if(h.includes('大分类')||h.includes('分类')) catIdx=idx;
-             });
-             if(codeIdx!==-1 || nameIdx!==-1) break; 
-         }
-
-         // 解析映射关系
-         raw.forEach(row => {
-             let code = codeIdx!==-1 ? row[codeIdx] : null;
-             let name = nameIdx!==-1 ? row[nameIdx] : null;
-             let cat = catIdx!==-1 ? row[catIdx] : null;
-             if(code && String(code).trim()) {
-                 _siteMapping[String(code).trim()] = {
-                     name: name ? String(name).trim() : '',
-                     cat: cat ? String(cat).trim() : ''
-                 };
+          _siteMapping = {};
+          if(raw && raw.length > 0) {
+             let nameIdx=-1, mainIdx=-1, subIdx=-1;
+             // 寻找表头
+             for(let i=0; i<Math.min(10, raw.length); i++) {
+                 if(!raw[i]) continue;
+                 const hr = raw[i].map(String);
+                 hr.forEach((h, idx)=>{
+                     if(h.includes('场地名称')||h.includes('场地')) nameIdx=idx;
+                     if(h.includes('主')||(h.includes('观察者')&&!h.includes('备'))) mainIdx=idx;
+                     if(h.includes('备')) subIdx=idx;
+                 });
+                 if(nameIdx!==-1) break; 
              }
-         });
-      }
 
-      $('mapSheetInfo').textContent=`已匹配 ${Object.keys(_siteMapping).length} 条规则`;
-      setSt('映射表读取完成，请上传周报数据或点击生成周报');
-    }catch(ex){
-      setSt('映射表失败: '+ex.message);
-    }
+             // 解析数据并处理合并单元格产生的空白分类 (继承上一行)
+             let lastCat = '';
+             raw.forEach((row, rowIndex) => {
+                 if(!row || rowIndex === 0) return; 
+                 
+                 let currentCat = row[0] ? String(row[0]).trim() : ''; 
+                 if (currentCat) {
+                     lastCat = currentCat;
+                 } else {
+                     currentCat = lastCat; // 向下继承分类
+                 }
+
+                 let name = nameIdx!==-1 && row[nameIdx] ? String(row[nameIdx]).trim() : '';
+                 let mainLink = mainIdx!==-1 && row[mainIdx] ? String(row[mainIdx]).trim() : '';
+                 let subLink = subIdx!==-1 && row[subIdx] ? String(row[subIdx]).trim() : '';
+
+                 if(name) {
+                     if(mainLink) _siteMapping[mainLink] = { name, cat: currentCat };
+                     if(subLink) _siteMapping[subLink] = { name, cat: currentCat };
+                 }
+             });
+          }
+
+          const count = Object.keys(_siteMapping).length;
+          if (count === 0) {
+              $('mapSheetInfo').innerHTML = `<span style="color:var(--red)">未识别到表头，若您上传的是CSV格式可能存在乱码，请转存为 Excel(.xlsx) 后重传</span>`;
+          } else {
+              $('mapSheetInfo').textContent=`已记录 ${count} 个观察者链接关联`;
+          }
+          setSt('映射表读取完成，请上传周报数据或点击生成周报');
+        }catch(ex){
+          $('mapFileName').textContent='读取失败';
+          setSt('映射表失败: '+ex.message);
+          console.error(ex);
+        }
+    }, 50);
   };
   r.readAsArrayBuffer(file);
 }
 
-// 核心方法：提取场地信息（整合了映射表查询、强制转换和关键字兜底）
+// 核心方法：提取场地信息（通过主/备链接模糊匹配）
 function getSiteInfo(row) {
   let code = String(gIdx(row, 2) || gRow(row, '场地编号') || '').trim();
   let rawCat = String(gIdx(row, 65) || gRow(row, '分类') || '').trim();
@@ -507,31 +529,44 @@ function getSiteInfo(row) {
 
   let siteName = eVal.includes('\n') ? eVal.split('\n')[1].trim() : (gVal || code);
   let cat = rawCat;
+  let matched = false;
 
-  // 1. 从上传的《观察者映射表》中精准覆盖
-  if (code && _siteMapping[code]) {
-      if (_siteMapping[code].name) siteName = _siteMapping[code].name;
-      if (_siteMapping[code].cat) cat = _siteMapping[code].cat;
+  // 1. 用场地编号(code)去匹配映射表里的 主/备链接 (支持部分包含匹配)
+  if (code) {
+      if (_siteMapping[code]) {
+          siteName = _siteMapping[code].name;
+          if (_siteMapping[code].cat) cat = _siteMapping[code].cat;
+          matched = true;
+      } else {
+          for (let link in _siteMapping) {
+              if (link.includes(code) || code.includes(link)) {
+                  siteName = _siteMapping[link].name;
+                  if (_siteMapping[link].cat) cat = _siteMapping[link].cat;
+                  matched = true;
+                  break;
+              }
+          }
+      }
   }
 
-  // 2. 强规则硬编码（电力矿场替换）
-  if (code === 'ND1' || siteName === 'ND1') { siteName = 'ECND01'; }
-  if (code === 'ND2' || siteName === 'ND2') { siteName = 'TTHND01'; }
+  // 2. 强规则硬编码与兜底
+  if (!matched) {
+      if (code === 'ND1' || siteName === 'ND1') { siteName = 'ECND01'; }
+      if (code === 'ND2' || siteName === 'ND2') { siteName = 'TTHND01'; }
 
-  // 3. 客户名智能纠错分类（无映射或映射缺失时的兜底）
-  const kws = ['SAD', '新合资', '老合资', '我方代', '已经出'];
-  for (let kw of kws) {
-      if (gVal.includes(kw) || siteName.includes(kw)) {
-          cat = kw;
-          break;
+      // 3. 客户名智能纠错分类（兜底）
+      const kws = ['SAD', '新合资', '老合资', '我方代', '已经出'];
+      for (let kw of kws) {
+          if (gVal.includes(kw) || siteName.includes(kw)) {
+              cat = kw;
+              break;
+          }
       }
   }
 
   return { code, siteName, cat: cat || '其他项', gVal };
 }
 
-
-// ── 超频参数 ──
 const OC_KEY='ns_weekly_oc_v3';
 const OC_IDS=[
   ['oc_sad_coin','oc_sad_u'],['oc_new_coin','oc_new_u'],
@@ -588,24 +623,34 @@ function getOC(){
 }
 initOC();
 
-// ── 文件读取 ──
 let wb=null;
 function onDrag(e,on,zoneId){e.preventDefault();$(zoneId||'dropZone')?.classList.toggle('drag',on);}
 function onDrop(e){e.preventDefault();$('dropZone').classList.remove('drag');readFile(e.dataTransfer.files[0]);}
-function onFileChange(e){readFile(e.target.files[0]);}
+function onFileChange(e){
+    readFile(e.target.files[0]);
+    e.target.value = ''; 
+}
 function readFile(file){
-  if(!file)return; setSt('读取中...');
+  if(!file)return; 
+  $('fileName').textContent='读取中...'; 
+  $('fileInfo').style.display='flex';
+  setSt('解析文件数据中，请稍候...');
+  
   const r=new FileReader();
   r.onload=e=>{
-    try{
-      wb=XLSX.read(e.target.result,{type:'array',cellDates:false,dateNF:'yyyy-mm-dd'});
-      $('fileName').textContent=file.name;
-      $('fileInfo').style.display='flex';
-      $('sheetInfo').textContent=`${wb.SheetNames.length} 个 Sheet`;
-      updateSels(wb.SheetNames);
-      $('btnRun').disabled=false;
-      setSt('读取完成，请设置日期范围后生成周报');
-    }catch(ex){setSt('读取失败：'+ex.message);}
+    setTimeout(()=>{
+        try{
+          wb=XLSX.read(e.target.result,{type:'array',cellDates:false,dateNF:'yyyy-mm-dd'});
+          $('fileName').textContent=file.name;
+          $('sheetInfo').textContent=`${wb.SheetNames.length} 个 Sheet`;
+          updateSels(wb.SheetNames);
+          $('btnRun').disabled=false;
+          setSt('读取完成，请设置日期范围后生成周报');
+        }catch(ex){
+            $('fileName').textContent='读取失败';
+            setSt('读取失败：'+ex.message);
+        }
+    }, 50);
   };
   r.readAsArrayBuffer(file);
 }
@@ -653,29 +698,25 @@ function toRows(sheet){
   });
 }
 
-// ── 常量 ──
 const CATS=['SAD','新合资','老合资','其他项','我方代','已经出'];
 const CAT_NAMES={'SAD':'SADG自营','新合资':'新合资（赵总）','老合资':'老合资','其他项':'其他项目','我方代':'我方代托','已经出':'已经出售/争议'};
 const BJ_VALID=['U本位','币本位'];
 
-// ── 核心计算 ──
 function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
   const result={};
   CATS.forEach(cat=>{result[cat]={total:{},byBase:{'U本位':{},'币本位':{}}};});
 
-  // ── 算力部分 ──
   CATS.forEach(cat=>{
-    const isProxy=cat==='我方代'; // 我方代用 I/X 列计算达成率
+    const isProxy=cat==='我方代'; 
     const ocVal=oc[cat]||0;
 
-    // byBase（U本位/币本位）
     ['U本位','币本位'].forEach(base=>{
       let sumH=0,sumK=0,sumBA=0,sumBL=0,sumBM=0,sumI=0,sumX=0;
       insRows.forEach(row=>{
         const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
         if(!miner||['矿工号','汇总',''].includes(miner)) return;
         
-        const info = getSiteInfo(row); // 全新升级的场地解析方法
+        const info = getSiteInfo(row);
         const bn = info.cat;
         
         const bj=String(gIdx(row,61)||gRow(row,'采购\n资金分类')||'').trim();
@@ -709,20 +750,18 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
       };
     });
 
-    // total
     let sumH=0,sumK=0,sumBA=0,sumBL=0,sumBM=0,sumI=0,sumX=0;
     insRows.forEach(row=>{
       const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
       if(!miner||['矿工号','汇总',''].includes(miner)) return;
       
-      const info = getSiteInfo(row); // 全新升级的场地解析方法
+      const info = getSiteInfo(row); 
       const bn = info.cat;
       
       const bj=String(gIdx(row,61)||gRow(row,'采购\n资金分类')||'').trim();
       const bk=String(gIdx(row,62)||gRow(row,'需剔除场地')||'').trim();
       const date=normDate(String(gRow(row,'登记日期')||''));
       if(bn!==cat) return;
-      const bjValid=BJ_VALID.includes(bj);
       if(date===to){
         sumH+=n(gIdx(row,7) ||gRow(row,'持有机器数'))||0;
         sumK+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
@@ -747,7 +786,6 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
     };
   });
 
-  // ── 收益部分：按矿工号从巡查表映射 BN(分类)/BJ(本位) 过滤 ──
   CATS.forEach(cat=>{
     ['U本位','币本位','total'].forEach(base=>{
       let sumBtc=0,sumUsd=0,sumProfit=0;
@@ -770,10 +808,9 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
     });
   });
 
-  // ── 全部总揽 ──
-  let totH=0,totK=0,totBA=0,totBL=0,totBM=0,totI=0,totX=0,totBtc=0,totUsd=0,totProfit=0;
-  const totByBase={'U本位':{H:0,K:0,BA:0,BL:0,BM:0,I:0,X:0,btc:0,usd:0,profit:0},
-                   '币本位':{H:0,K:0,BA:0,BL:0,BM:0,I:0,X:0,btc:0,usd:0,profit:0}};
+  let totH=0,totK=0,totBA=0,totBL=0,totBM=0,totBtc=0,totUsd=0,totProfit=0;
+  const totByBase={'U本位':{H:0,K:0,BA:0,BL:0,BM:0,btc:0,usd:0,profit:0},
+                   '币本位':{H:0,K:0,BA:0,BL:0,BM:0,btc:0,usd:0,profit:0}};
   CATS.forEach(cat=>{
     const t=result[cat].total;
     totH+=t.machines||0;totK+=t.manageP||0;totBA+=t.nsHold||0;
@@ -811,7 +848,6 @@ function calcWeek(insRows,revRows,minerCatMap,from,to,oc){
   return result;
 }
 
-// ── 主流程 ──
 function runReport(){
   if(!wb){setSt('请先上传文件');return;}
   const s1=$('selIns').value,s2=$('selRev').value;
@@ -825,11 +861,10 @@ function runReport(){
     window._insRows=insRows; window._revRows=revRows;
     const oc=getOC();
 
-    // 建立矿工号→分类映射
     const minerCatMap={};
     insRows.forEach(row=>{
       const miner=String(row['矿工号']||'').split('\n')[0].trim();
-      const info = getSiteInfo(row); // 智能纠错分类
+      const info = getSiteInfo(row);
       const bn = info.cat;
       const bj=String(gIdx(row,61)||gRow(row,'采购\n资金分类')||'').trim();
       if(miner&&bn&&!minerCatMap[miner]) minerCatMap[miner]={bn,bj};
@@ -848,7 +883,6 @@ function runReport(){
   }catch(ex){setSt('错误：'+ex.message);console.error(ex);}
 }
 
-// ── 渲染 ──
 function renderReport(rpt){
   const{cur,cmp,curFrom,curTo,cmpFrom,cmpTo}=rpt;
   const hasCmp=!!cmp;
@@ -983,7 +1017,6 @@ function renderReport(rpt){
 
 function togAcc(id){const b=$(id),a=$(`${id}-arr`);const o=b.classList.toggle('open');a.classList.toggle('open',o);}
 
-// ── 导出 ──
 function exportExcel(){
   const rpt=window._lastRpt;
   if(!rpt){alert('请先生成周报');return;}
@@ -1013,7 +1046,6 @@ function exportExcel(){
   XLSX.writeFile(ewb,`NS周报_${curFrom}_${curTo}.xlsx`);
 }
 
-// ── 历史记录 ──
 const HK='ns_weekly_hist_v1';
 function loadH(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch{return[];}}
 function saveHist(rpt){
@@ -1053,19 +1085,20 @@ function renderHist(){
 }
 function delH(i){const arr=loadH();arr.splice(i,1);localStorage.setItem(HK,JSON.stringify(arr));renderHist();}
 
-// ── 场地明细（从巡查表计算 + 与周报表对比校验）──
 let _siteData = null;
 let siteWb = null;
 
 function onDrag(e,on,zoneId){e.preventDefault();$(zoneId||'dropZone')?.classList.toggle('drag',on);}
 function onSiteDrop(e){e.preventDefault();$('siteDropZone').classList.remove('drag');readSiteFile(e.dataTransfer.files[0]);}
-function onSiteFileChange(e){readSiteFile(e.target.files[0]);}
+function onSiteFileChange(e){
+    readSiteFile(e.target.files[0]);
+    e.target.value = ''; 
+}
 
-// 从巡查表+收益表按场地名称计算合并
 function calcSiteFromIns(insRows, revRows, from, to){
-  const sites={};   // 现改为 key = 场地名称
+  const sites={};   
   const order=[];
-  const codeToName={}; // 保存映射以便算收益
+  const codeToName={}; 
 
   insRows.forEach(row=>{
     const date=normDate(String(gRow(row,'登记日期')||''));
@@ -1073,7 +1106,7 @@ function calcSiteFromIns(insRows, revRows, from, to){
     const miner=String(gRow(row,'矿工号')||'').split('\n')[0].trim();
     if(!miner||['矿工号','汇总',''].includes(miner)) return;
     
-    const info = getSiteInfo(row); // 获取全新的统一解析数据
+    const info = getSiteInfo(row); 
     const code = info.code;
     const siteName = info.siteName;
     const bn = info.cat;
@@ -1088,26 +1121,23 @@ function calcSiteFromIns(insRows, revRows, from, to){
         cat:bn, 
         codes: new Set(),
         machines:0, theoryP:0, fault:0, faultHasData:false,
-        dailyEff:{},  // date → {h24,theory}
-        dailyFault:{}, // date → {fault,machines}
+        dailyEff:{},  
+        dailyFault:{}, 
         profit:0
       };
       order.push(siteName);
     }
     const s=sites[siteName];
-    if(code) s.codes.add(code); // 记录该名称下包含的所有代码
+    if(code) s.codes.add(code); 
 
-    // 周末快照
     if(date===to){
       s.machines+=n(gIdx(row,7)||gRow(row,'持有机器数'))||0;
       s.theoryP+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
     }
-    // 周内日有效率
     if(!s.dailyEff[date]) s.dailyEff[date]={h24:0,theory:0};
     s.dailyEff[date].h24+=n(gIdx(row,8)||gRow(row,'24h平均算力（P）'))||0;
     s.dailyEff[date].theory+=n(gIdx(row,10)||gRow(row,'理论总算力(P)'))||0;
     
-    // 周内日故障
     if(!s.dailyFault[date]) s.dailyFault[date]={fault:0,machines:0};
     const fStr=String(gIdx(row,12)||gRow(row,'总故障数')||'').trim();
     if(!['未填写','','None','#DIV/0!'].includes(fStr)){
@@ -1117,7 +1147,6 @@ function calcSiteFromIns(insRows, revRows, from, to){
     s.dailyFault[date].machines+=n(gIdx(row,7)||gRow(row,'持有机器数'))||0;
   });
 
-  // 收益毛利
   const profitByName={};
   revRows.forEach(row=>{
     const date=normDate(String(gRow(row,'登记日期')||''));
@@ -1131,7 +1160,6 @@ function calcSiteFromIns(insRows, revRows, from, to){
     if(p!=null) profitByName[siteName]=(profitByName[siteName]||0)+p;
   });
 
-  // 计算最终指标
   order.forEach(siteName=>{
     const s=sites[siteName];
     s.profit=profitByName[siteName]||0;
@@ -1154,27 +1182,29 @@ function calcSiteFromIns(insRows, revRows, from, to){
 
 function readSiteFile(file){
   if(!file) return;
-  $('siteStatus').textContent='读取中...';
+  $('siteStatus').textContent='读取中，请稍候...';
+  
   const r=new FileReader();
   r.onload=e=>{
-    try{
-      siteWb=XLSX.read(e.target.result,{type:'array',cellDates:false,dateNF:'yyyy-mm-dd'});
-      $('siteFileName').textContent=file.name;
-      $('siteFileInfo').style.display='flex';
-      const sel=$('selSiteSheet');
-      sel.innerHTML='';
-      siteWb.SheetNames.forEach(nm=>{
-        if(nm==='Sheet1') return;
-        const o=document.createElement('option');o.value=o.textContent=nm;sel.appendChild(o);
-      });
-      if(sel.options.length>0){sel.selectedIndex=0;loadSiteSheet();}
-      $('siteStatus').textContent='';
-    }catch(ex){$('siteStatus').textContent='读取失败：'+ex.message;}
+    setTimeout(() => {
+        try{
+          siteWb=XLSX.read(e.target.result,{type:'array',cellDates:false,dateNF:'yyyy-mm-dd'});
+          $('siteFileName').textContent=file.name;
+          $('siteFileInfo').style.display='flex';
+          const sel=$('selSiteSheet');
+          sel.innerHTML='';
+          siteWb.SheetNames.forEach(nm=>{
+            if(nm==='Sheet1') return;
+            const o=document.createElement('option');o.value=o.textContent=nm;sel.appendChild(o);
+          });
+          if(sel.options.length>0){sel.selectedIndex=0;loadSiteSheet();}
+          $('siteStatus').textContent='';
+        }catch(ex){$('siteStatus').textContent='读取失败：'+ex.message;}
+    }, 50);
   };
   r.readAsArrayBuffer(file);
 }
 
-// 支持按名称或代码对照
 function parseSiteReport(raw){
   const byName={};
   const byCode={};
@@ -1203,7 +1233,6 @@ function parseSiteReport(raw){
 
     if(code) byCode[code] = r;
   }
-  // 汇总
   Object.values(byName).forEach(r=>{
     r.effAvg=r.effList.length?r.effList.reduce((a,b)=>a+b,0)/r.effList.length:null;
     r.faultAvg=r.faultList.length?r.faultList.reduce((a,b)=>a+b,0)/r.faultList.length:null;
@@ -1280,7 +1309,6 @@ function renderSites(){
     snames.forEach((siteName,idx)=>{
       const s=calc.sites[siteName];
       
-      // 匹配周报（优先通过名字匹配，如果失败再通过任一包含的代码匹配）
       let rpt = reportData.byName[siteName];
       if(!rpt) {
         for(let c of s.codes) {
